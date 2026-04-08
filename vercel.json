@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.protalentconnect.co.in"
+        }
+      ],
+      "destination": "https://protalentconnect.co.in/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "protalentconnect.com"
+        }
+      ],
+      "destination": "https://protalentconnect.co.in/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.protalentconnect.com"
+        }
+      ],
+      "destination": "https://protalentconnect.co.in/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "pro-talent-connect-frontend.vercel.app"
+        }
+      ],
+      "destination": "https://protalentconnect.co.in/$1",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
