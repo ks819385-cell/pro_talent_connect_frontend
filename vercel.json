@@ -9,10 +9,10 @@
       "has": [
         {
           "type": "host",
-          "value": "www.protalentconnect.co.in"
+          "value": "protalentconnect.co.in"
         }
       ],
-      "destination": "https://protalentconnect.co.in/$1",
+      "destination": "https://www.protalentconnect.co.in/$1",
       "permanent": true
     },
     {
@@ -23,7 +23,7 @@
           "value": "protalentconnect.com"
         }
       ],
-      "destination": "https://protalentconnect.co.in/$1",
+      "destination": "https://www.protalentconnect.co.in/$1",
       "permanent": true
     },
     {
@@ -34,7 +34,7 @@
           "value": "www.protalentconnect.com"
         }
       ],
-      "destination": "https://protalentconnect.co.in/$1",
+      "destination": "https://www.protalentconnect.co.in/$1",
       "permanent": true
     },
     {
@@ -45,7 +45,7 @@
           "value": "pro-talent-connect-frontend.vercel.app"
         }
       ],
-      "destination": "https://protalentconnect.co.in/$1",
+      "destination": "https://www.protalentconnect.co.in/$1",
       "permanent": true
     }
   ],
