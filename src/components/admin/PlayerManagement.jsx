@@ -11,6 +11,13 @@ import {
   ChevronRightIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const POSITIONS = ["FORWARD", "MIDFIELD", "DEFENDER", "GOALKEEPER", "WINGER"];
 const AGE_GROUPS = ["U13", "U15", "U17", "U19", "Senior"];
@@ -28,7 +35,7 @@ const gradeColors = {
 };
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white";
-const selectCls = inputCls + " appearance-none";
+const selectTriggerCls = inputCls;
 
 const Field = ({ label, children, span = 1 }) => (
   <div className={span === 2 ? "col-span-2" : ""}>
@@ -336,10 +343,25 @@ const PlayerManagement = () => {
               className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-red-500 text-white w-full sm:w-48"
             />
           </form>
-          <select value={posFilter} onChange={(e) => { setPosFilter(e.target.value); setPage(1); }} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none flex-1 min-w-0 sm:flex-none">
-            <option value="">All Positions</option>
-            {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <Select
+            value={posFilter || "all"}
+            onValueChange={(value) => {
+              setPosFilter(value === "all" ? "" : value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="flex-1 min-w-0 sm:flex-none px-3 py-2 text-sm">
+              <SelectValue placeholder="All Positions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Positions</SelectItem>
+              {POSITIONS.map((pos) => (
+                <SelectItem key={pos} value={pos}>
+                  {pos}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
             <PlusIcon className="w-4 h-4" /> Add Player
           </button>
@@ -537,14 +559,42 @@ const PlayerManagement = () => {
                     <input type="number" value={formData.age} onChange={e => setFormData(p => ({ ...p, age: e.target.value }))} className={inputCls} />
                   </Field>
                   <Field label="Age Group">
-                    <select value={formData.age_group} onChange={e => setFormData(p => ({ ...p, age_group: e.target.value }))} className={selectCls}>
-                      {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                    <Select
+                      value={formData.age_group}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({ ...p, age_group: value }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGE_GROUPS.map((group) => (
+                          <SelectItem key={group} value={group}>
+                            {group}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Gender *">
-                    <select value={formData.gender} onChange={e => setFormData(p => ({ ...p, gender: e.target.value }))} className={selectCls}>
-                      {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({ ...p, gender: value }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENDERS.map((gender) => (
+                          <SelectItem key={gender} value={gender}>
+                            {gender}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Nationality">
                     <input value={formData.nationality} onChange={e => setFormData(p => ({ ...p, nationality: e.target.value }))} className={inputCls} />
@@ -560,17 +610,45 @@ const PlayerManagement = () => {
                 <h4 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">Position & Physical</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <Field label="Playing Position *">
-                    <select value={formData.playingPosition} onChange={e => setFormData(p => ({ ...p, playingPosition: e.target.value }))} className={selectCls}>
-                      {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                    <Select
+                      value={formData.playingPosition}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({ ...p, playingPosition: value }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {POSITIONS.map((pos) => (
+                          <SelectItem key={pos} value={pos}>
+                            {pos}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Alt. Position">
                     <input value={formData.alternativePosition} onChange={e => setFormData(p => ({ ...p, alternativePosition: e.target.value }))} className={inputCls} />
                   </Field>
                   <Field label="Preferred Foot">
-                    <select value={formData.preferredFoot} onChange={e => setFormData(p => ({ ...p, preferredFoot: e.target.value }))} className={selectCls}>
-                      {FEET.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
+                    <Select
+                      value={formData.preferredFoot}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({ ...p, preferredFoot: value }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FEET.map((foot) => (
+                          <SelectItem key={foot} value={foot}>
+                            {foot}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Height (cm)">
                     <input type="number" value={formData.height} onChange={e => setFormData(p => ({ ...p, height: e.target.value }))} className={inputCls} />
@@ -582,9 +660,23 @@ const PlayerManagement = () => {
                     <input type="number" min="0" max="99" value={formData.jersey_no} onChange={e => setFormData(p => ({ ...p, jersey_no: e.target.value }))} className={inputCls} />
                   </Field>
                   <Field label="Size">
-                    <select value={formData.size} onChange={e => setFormData(p => ({ ...p, size: e.target.value }))} className={selectCls}>
-                      {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <Select
+                      value={formData.size}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({ ...p, size: value }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SIZES.map((size) => (
+                          <SelectItem key={size} value={size}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
               </div>
@@ -615,21 +707,73 @@ const PlayerManagement = () => {
                     <input value={formData.transferMarketLink} onChange={e => setFormData(p => ({ ...p, transferMarketLink: e.target.value }))} className={inputCls} placeholder="https://..." />
                   </Field>
                   <Field label="Current League">
-                    <select value={formData.currentLeague} onChange={e => setFormData(p => ({ ...p, currentLeague: e.target.value }))} className={selectCls}>
-                      <option value="">None</option>
-                      {leagueOptions.map(l => <option key={l._id} value={l.name}>{l.name} ({l.tier})</option>)}
-                    </select>
+                    <Select
+                      value={formData.currentLeague || "none"}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({
+                          ...p,
+                          currentLeague: value === "none" ? "" : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {leagueOptions.map((league) => (
+                          <SelectItem key={league._id} value={league.name}>
+                            {league.name} ({league.tier})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="State / Previous League">
-                    <select value={formData.stateLeague} onChange={e => setFormData(p => ({ ...p, stateLeague: e.target.value }))} className={selectCls}>
-                      <option value="">None</option>
-                      {stateLeagueOptions.map(l => <option key={l._id} value={l.name}>{l.name}</option>)}
-                    </select>
+                    <Select
+                      value={formData.stateLeague || "none"}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({
+                          ...p,
+                          stateLeague: value === "none" ? "" : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {stateLeagueOptions.map((league) => (
+                          <SelectItem key={league._id} value={league.name}>
+                            {league.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Club Tier">
-                    <select value={formData.clubTier} onChange={e => setFormData(p => ({ ...p, clubTier: e.target.value }))} className={selectCls}>
-                      {CLUB_TIERS.map(t => <option key={t} value={t}>{t || "Auto-detect"}</option>)}
-                    </select>
+                    <Select
+                      value={formData.clubTier || "none"}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({
+                          ...p,
+                          clubTier: value === "none" ? "" : value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Auto-detect" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Auto-detect</SelectItem>
+                        {CLUB_TIERS.filter(Boolean).map((tier) => (
+                          <SelectItem key={tier} value={tier}>
+                            {tier}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                   <Field label="Sprint 30m (sec)">
                     <input type="number" step="0.1" value={formData.sprint30m} onChange={e => setFormData(p => ({ ...p, sprint30m: e.target.value }))} className={inputCls} />
@@ -638,11 +782,24 @@ const PlayerManagement = () => {
                     <input type="number" step="0.1" value={formData.sprint50m} onChange={e => setFormData(p => ({ ...p, sprint50m: e.target.value }))} className={inputCls} />
                   </Field>
                   <Field label="Mentality Score">
-                    <select value={formData.mentalityScore} onChange={e => setFormData(p => ({ ...p, mentalityScore: Number(e.target.value) }))} className={selectCls}>
-                      <option value={0}>0 – No data</option>
-                      <option value={1}>1 – Good</option>
-                      <option value={2}>2 – Strong</option>
-                    </select>
+                    <Select
+                      value={String(formData.mentalityScore ?? 0)}
+                      onValueChange={(value) =>
+                        setFormData((p) => ({
+                          ...p,
+                          mentalityScore: Number(value),
+                        }))
+                      }
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">0 - No data</SelectItem>
+                        <SelectItem value="1">1 - Good</SelectItem>
+                        <SelectItem value="2">2 - Strong</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
               </div>
@@ -664,14 +821,32 @@ const PlayerManagement = () => {
                       </div>
                       <div className="col-span-3">
                         <label className="text-[10px] text-gray-500">League / Type</label>
-                        <select value={comp.type} onChange={e => updateCompetition(idx, "type", e.target.value)} className={selectCls}>
-                          <option value="">Select...</option>
-                          {leagueOptions.map(l => <option key={l._id} value={l.name}>{l.name}</option>)}
-                          <option value="National Team">National Team</option>
-                          <option value="Santosh Trophy">Santosh Trophy</option>
-                          <option value="District League">District League</option>
-                          <option value="Other">Other</option>
-                        </select>
+                        <Select
+                          value={comp.type || "none"}
+                          onValueChange={(value) =>
+                            updateCompetition(
+                              idx,
+                              "type",
+                              value === "none" ? "" : value,
+                            )
+                          }
+                        >
+                          <SelectTrigger className={selectTriggerCls}>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Select...</SelectItem>
+                            {leagueOptions.map((league) => (
+                              <SelectItem key={league._id} value={league.name}>
+                                {league.name}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="National Team">National Team</SelectItem>
+                            <SelectItem value="Santosh Trophy">Santosh Trophy</SelectItem>
+                            <SelectItem value="District League">District League</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="col-span-2">
                         <label className="text-[10px] text-gray-500">Year</label>
@@ -679,9 +854,28 @@ const PlayerManagement = () => {
                       </div>
                       <div className="col-span-2">
                         <label className="text-[10px] text-gray-500">Result</label>
-                        <select value={comp.result} onChange={e => updateCompetition(idx, "result", e.target.value)} className={selectCls}>
-                          {COMP_RESULTS.map(r => <option key={r} value={r}>{r || "N/A"}</option>)}
-                        </select>
+                        <Select
+                          value={comp.result || "none"}
+                          onValueChange={(value) =>
+                            updateCompetition(
+                              idx,
+                              "result",
+                              value === "none" ? "" : value,
+                            )
+                          }
+                        >
+                          <SelectTrigger className={selectTriggerCls}>
+                            <SelectValue placeholder="N/A" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">N/A</SelectItem>
+                            {COMP_RESULTS.filter(Boolean).map((result) => (
+                              <SelectItem key={result} value={result}>
+                                {result}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="col-span-1 flex justify-center">
                         <button type="button" onClick={() => removeCompetition(idx)} className="p-1 hover:bg-red-500/20 rounded"><TrashIcon className="w-3.5 h-3.5 text-red-400" /></button>

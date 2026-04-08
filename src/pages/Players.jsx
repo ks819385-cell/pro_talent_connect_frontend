@@ -13,6 +13,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { api } from "../services/api";
 import PlayerDetailPage from "../components/players/PlayerDetailPage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GLASS = {
@@ -1452,34 +1459,21 @@ const Players = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  height: "38px",
-                  padding: "0 10px",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "10px",
-                  fontSize: "12px",
-                  color: "rgba(255,255,255,0.6)",
-                  outline: "none",
-                  cursor: "pointer",
-                }}
-              >
-                <option value="name" className="bg-gray-900">
-                  Name
-                </option>
-                <option value="score" className="bg-gray-900">
-                  Score
-                </option>
-                <option value="position" className="bg-gray-900">
-                  Position
-                </option>
-                <option value="age" className="bg-gray-900">
-                  Age
-                </option>
-              </select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger
+                  size="sm"
+                  className="h-9 min-w-[120px] text-xs"
+                  style={{ borderRadius: "10px" }}
+                >
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="score">Score</SelectItem>
+                  <SelectItem value="position">Position</SelectItem>
+                  <SelectItem value="age">Age</SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 onClick={() => setFilterDrawerOpen(true)}
                 className="relative flex items-center justify-center rounded-xl transition-all duration-200 active:scale-95"
@@ -1711,7 +1705,7 @@ const Players = () => {
                   }}
                 >
                   {loading
-                    ? "Loading players…"
+                    ? "Loading players..."
                     : `${filteredPlayers.length} verified player${filteredPlayers.length !== 1 ? "s" : ""}`}
                 </p>
               </div>
@@ -1748,34 +1742,25 @@ const Players = () => {
                 </div>
 
                 {/* Sort */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  style={{
-                    height: "48px",
-                    padding: "0 16px",
-                    ...GLASS,
-                    borderRadius: "14px",
-                    fontSize: "14px",
-                    color: "rgba(255,255,255,0.65)",
-                    outline: "none",
-                    cursor: "pointer",
-                    minWidth: "140px",
-                  }}
-                >
-                  <option value="name" className="bg-gray-900">
-                    Sort: Name
-                  </option>
-                  <option value="score" className="bg-gray-900">
-                    Sort: Score
-                  </option>
-                  <option value="position" className="bg-gray-900">
-                    Sort: Position
-                  </option>
-                  <option value="age" className="bg-gray-900">
-                    Sort: Age
-                  </option>
-                </select>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger
+                    size="lg"
+                    className="text-sm"
+                    style={{
+                      ...GLASS,
+                      borderRadius: "14px",
+                      minWidth: "140px",
+                    }}
+                  >
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Sort: Name</SelectItem>
+                    <SelectItem value="score">Sort: Score</SelectItem>
+                    <SelectItem value="position">Sort: Position</SelectItem>
+                    <SelectItem value="age">Sort: Age</SelectItem>
+                  </SelectContent>
+                </Select>
 
                 {/* View Toggle */}
                 <div
@@ -1954,26 +1939,33 @@ const Players = () => {
                   />
 
                   <FilterSection title="Position">
-                    <select
-                      value={filters.position}
-                      onChange={(e) => set("position", e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        color: filters.position
-                          ? "#fff"
-                          : "rgba(255,255,255,0.3)",
-                        cursor: "pointer",
-                      }}
+                    <Select
+                      value={filters.position || "all"}
+                      onValueChange={(value) =>
+                        set("position", value === "all" ? "" : value)
+                      }
                     >
-                      <option value="" className="bg-gray-900">
-                        All Positions
-                      </option>
-                      {POSITIONS.map((p) => (
-                        <option key={p} value={p} className="bg-gray-900">
-                          {p}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger
+                        size="md"
+                        style={{
+                          ...inputStyle,
+                          paddingRight: "36px",
+                          color: filters.position
+                            ? "#fff"
+                            : "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        <SelectValue placeholder="All Positions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Positions</SelectItem>
+                        {POSITIONS.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FilterSection>
 
                   <FilterSection title="Age Range">

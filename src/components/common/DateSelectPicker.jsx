@@ -1,4 +1,11 @@
 import { useMemo } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -11,7 +18,7 @@ function daysInMonth(month, year) {
 }
 
 /**
- * A custom date picker made of three <select> dropdowns (Day / Month / Year).
+ * A custom date picker made of three dropdowns (Day / Month / Year).
  * Works as a drop-in replacement for <input type="date">.
  *
  * Props:
@@ -61,7 +68,7 @@ export default function DateSelectPicker({
 
   const base =
     outerSelectCls ||
-    "flex-1 px-2 py-2.5 bg-transparent text-white text-sm focus:outline-none cursor-pointer appearance-none text-center";
+    "flex-1 text-center text-sm text-white";
 
   /* Keep selected day in valid range when month/year changes */
   const clampDay = (d, newMonth, newYear) => {
@@ -74,56 +81,77 @@ export default function DateSelectPicker({
       className={`flex items-stretch border border-white/10 rounded-xl bg-white/5 overflow-hidden divide-x divide-white/10 ${className}`}
     >
       {/* Day */}
-      <select
-        value={day}
-        required={required && !day}
-        onChange={(e) => emit(year, month, e.target.value)}
-        className={base}
-        style={{ minWidth: 0 }}
+      <Select
+        value={day || undefined}
+        onValueChange={(value) => emit(year, month, value)}
       >
-        <option value="" className="bg-gray-900 text-gray-400">Day</option>
-        {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
-          <option key={d} value={d} className="bg-gray-900">
-            {d}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          variant="ghost"
+          className={base}
+          style={{ minWidth: 0 }}
+          aria-required={required}
+        >
+          <SelectValue placeholder="Day" />
+        </SelectTrigger>
+        <SelectContent>
+          {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+            <SelectItem key={d} value={String(d)}>
+              {d}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Month */}
-      <select
-        value={month}
-        onChange={(e) => {
-          const newDay = clampDay(day, e.target.value, year);
-          emit(year, e.target.value, newDay);
+      <Select
+        value={month || undefined}
+        onValueChange={(value) => {
+          const newDay = clampDay(day, value, year);
+          emit(year, value, newDay);
         }}
-        className={base}
-        style={{ minWidth: 0 }}
       >
-        <option value="" className="bg-gray-900 text-gray-400">Month</option>
-        {MONTHS.map((m, i) => (
-          <option key={i + 1} value={i + 1} className="bg-gray-900">
-            {m}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          variant="ghost"
+          className={base}
+          style={{ minWidth: 0 }}
+        >
+          <SelectValue placeholder="Month" />
+        </SelectTrigger>
+        <SelectContent>
+          {MONTHS.map((m, i) => (
+            <SelectItem key={i + 1} value={String(i + 1)}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Year */}
-      <select
-        value={year}
-        onChange={(e) => {
-          const newDay = clampDay(day, month, e.target.value);
-          emit(e.target.value, month, newDay);
+      <Select
+        value={year || undefined}
+        onValueChange={(value) => {
+          const newDay = clampDay(day, month, value);
+          emit(value, month, newDay);
         }}
-        className={base}
-        style={{ minWidth: 0 }}
       >
-        <option value="" className="bg-gray-900 text-gray-400">Year</option>
-        {years.map((y) => (
-          <option key={y} value={y} className="bg-gray-900">
-            {y}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          size="sm"
+          variant="ghost"
+          className={base}
+          style={{ minWidth: 0 }}
+        >
+          <SelectValue placeholder="Year" />
+        </SelectTrigger>
+        <SelectContent>
+          {years.map((y) => (
+            <SelectItem key={y} value={String(y)}>
+              {y}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

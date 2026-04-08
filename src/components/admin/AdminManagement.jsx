@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../../services/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const AdminManagement = () => {
   const [admins, setAdmins] = useState([]);
@@ -149,24 +156,38 @@ const AdminManagement = () => {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="w-full sm:flex-1 sm:min-w-[160px] px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 text-sm"
         />
-        <select
-          value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-          className="w-full sm:w-auto px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50"
+        <Select
+          value={roleFilter || "all"}
+          onValueChange={(value) => {
+            setRoleFilter(value === "all" ? "" : value);
+            setPage(1);
+          }}
         >
-          <option value="" className="bg-gray-900">All Roles</option>
-          <option value="Super Admin" className="bg-gray-900">Super Admin</option>
-          <option value="Admin" className="bg-gray-900">Admin</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="w-full sm:w-auto px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50"
+          <SelectTrigger className="w-full sm:w-auto px-4 py-2 text-sm">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="Super Admin">Super Admin</SelectItem>
+            <SelectItem value="Admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={statusFilter || "all"}
+          onValueChange={(value) => {
+            setStatusFilter(value === "all" ? "" : value);
+            setPage(1);
+          }}
         >
-          <option value="" className="bg-gray-900">All Status</option>
-          <option value="true" className="bg-gray-900">Active</option>
-          <option value="false" className="bg-gray-900">Inactive</option>
-        </select>
+          <SelectTrigger className="w-full sm:w-auto px-4 py-2 text-sm">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="true">Active</SelectItem>
+            <SelectItem value="false">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Admin List */}
@@ -289,14 +310,20 @@ const AdminManagement = () => {
               )}
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Role</label>
-                <select
+                <Select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50 text-sm"
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, role: value })
+                  }
                 >
-                  <option value="Admin" className="bg-gray-900">Admin</option>
-                  <option value="Super Admin" className="bg-gray-900">Super Admin</option>
-                </select>
+                  <SelectTrigger className="w-full px-3 py-2 text-sm">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {editingAdmin && (
                 <div className="flex items-center gap-3">

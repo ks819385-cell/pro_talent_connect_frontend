@@ -223,7 +223,7 @@ const EnquiryForm = () => {
           onBlur={blur("message")}
           aria-invalid={!!(touched.message && errors.message)}
           className={`${inputBase} resize-none ${touched.message && errors.message ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/20" : ""}`}
-          placeholder="Tell us how we can help…"
+          placeholder="Tell us how we can help..."
         />
       </Field>
 
@@ -287,7 +287,7 @@ const EnquiryForm = () => {
         >
           {isSubmitting ? (
             <>
-              <Spinner /> Sending…
+              <Spinner /> Sending...
             </>
           ) : (
             "Send Message"

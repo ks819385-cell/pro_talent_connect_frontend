@@ -6,6 +6,13 @@ import {
   PlusIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const BlogManagement = () => {
   const [blogs, setBlogs] = useState([]);
@@ -265,18 +272,21 @@ const BlogManagement = () => {
                 <label className="block text-sm font-medium mb-2">
                   Category <span className="text-red-500">*</span>
                 </label>
-                <select
-                  required
+                <Select
                   value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
                   }
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
                 >
-                  <option value="Announcements">Announcements</option>
-                  <option value="Transfers">Transfers</option>
-                  <option value="Achievements">Achievements</option>
-                </select>
+                  <SelectTrigger size="lg" className="w-full">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Announcements">Announcements</SelectItem>
+                    <SelectItem value="Transfers">Transfers</SelectItem>
+                    <SelectItem value="Achievements">Achievements</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

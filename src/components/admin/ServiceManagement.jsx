@@ -6,6 +6,13 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const ICONS = ["ShieldCheckIcon", "UserGroupIcon", "GlobeAltIcon", "ChartBarIcon", "AcademicCapIcon", "TrophyIcon", "other"];
 const COLORS = ["red", "blue", "green", "yellow", "purple", "pink", "orange"];
@@ -181,15 +188,45 @@ const ServiceManagement = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Icon</label>
-                  <select value={formData.icon} onChange={e => setFormData(p => ({ ...p, icon: e.target.value }))} className={inputCls}>
-                    {(activeSection === "services" ? ICONS : HIW_ICONS).map(i => <option key={i} value={i}>{i}</option>)}
-                  </select>
+                  <Select
+                    value={formData.icon}
+                    onValueChange={(value) =>
+                      setFormData((p) => ({ ...p, icon: value }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select icon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(activeSection === "services" ? ICONS : HIW_ICONS).map(
+                        (icon) => (
+                          <SelectItem key={icon} value={icon}>
+                            {icon}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Color</label>
-                  <select value={formData.color} onChange={e => setFormData(p => ({ ...p, color: e.target.value }))} className={inputCls}>
-                    {COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) =>
+                      setFormData((p) => ({ ...p, color: value }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COLORS.map((color) => (
+                        <SelectItem key={color} value={color}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Order</label>
@@ -197,10 +234,20 @@ const ServiceManagement = () => {
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Active</label>
-                  <select value={formData.isActive} onChange={e => setFormData(p => ({ ...p, isActive: e.target.value === "true" }))} className={inputCls}>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
+                  <Select
+                    value={formData.isActive ? "true" : "false"}
+                    onValueChange={(value) =>
+                      setFormData((p) => ({ ...p, isActive: value === "true" }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Active" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Yes</SelectItem>
+                      <SelectItem value="false">No</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-white/10">

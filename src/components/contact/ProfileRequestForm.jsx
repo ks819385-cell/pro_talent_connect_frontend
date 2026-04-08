@@ -2,13 +2,20 @@ import { useState } from "react";
 import { ChevronDownIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { api } from "../../services/api";
 import DOBCalendarPicker from "../common/DOBCalendarPicker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 /* ── shared styles ─────────────────────────────────────────── */
 const inputBase =
   "w-full px-4 py-3 rounded-xl bg-white/4 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20 transition-all duration-200";
 
 const selectBase =
-  "w-full px-4 py-3 rounded-xl bg-gray-900 border border-white/10 text-white focus:outline-none focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20 transition-all duration-200 cursor-pointer";
+  "w-full rounded-xl bg-white/4 border border-white/10 text-white focus:outline-none focus:border-red-500/70 focus:ring-2 focus:ring-red-500/20 transition-all duration-200";
 
 const errorBase = "mt-1.5 text-xs text-red-400";
 
@@ -69,7 +76,6 @@ function validate(d) {
   if (!d.fullName.trim()) errs.fullName = "Full name is required.";
   if (!d.email.trim()) errs.email = "Email is required.";
   else if (!emailRe.test(d.email)) errs.email = "Enter a valid email.";
-  if (!d.phone.trim()) errs.phone = "Phone number is required.";
   if (!d.dateOfBirth) errs.dateOfBirth = "Date of birth is required.";
   if (!d.nationality.trim()) errs.nationality = "Nationality is required.";
   if (!d.city.trim()) errs.city = "City is required.";
@@ -116,6 +122,16 @@ const ProfileRequestForm = () => {
     }
   };
 
+  const setValue = (field) => (val) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: val };
+      if (touched[field]) {
+        setErrors(validate(next));
+      }
+      return next;
+    });
+  };
+
   const blur = (field) => () => {
     setTouched((prev) => ({ ...prev, [field]: true }));
     setErrors(validate(formData));
@@ -126,7 +142,6 @@ const ProfileRequestForm = () => {
     const allTouched = {
       fullName: true,
       email: true,
-      phone: true,
       dateOfBirth: true,
       nationality: true,
       city: true,
@@ -256,20 +271,26 @@ const ProfileRequestForm = () => {
           half
           error={touched.playingPosition && errors.playingPosition}
         >
-          <select
-            id="playingPosition"
+          <Select
             value={formData.playingPosition}
-            onChange={set("playingPosition")}
-            onBlur={blur("playingPosition")}
-            aria-invalid={!!(touched.playingPosition && errors.playingPosition)}
-            className={`${selectBase} ${errBorder("playingPosition")}`}
+            onValueChange={setValue("playingPosition")}
           >
-            <option value="">Select position</option>
-            <option value="Goalkeeper">Goalkeeper</option>
-            <option value="Defender">Defender</option>
-            <option value="Midfielder">Midfielder</option>
-            <option value="Forward">Forward</option>
-          </select>
+            <SelectTrigger
+              size="lg"
+              id="playingPosition"
+              aria-invalid={!!(touched.playingPosition && errors.playingPosition)}
+              className={`${selectBase} ${errBorder("playingPosition")}`}
+              onBlur={blur("playingPosition")}
+            >
+              <SelectValue placeholder="Select position" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Goalkeeper">Goalkeeper</SelectItem>
+              <SelectItem value="Defender">Defender</SelectItem>
+              <SelectItem value="Midfielder">Midfielder</SelectItem>
+              <SelectItem value="Forward">Forward</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
 
         <Field
@@ -279,25 +300,31 @@ const ProfileRequestForm = () => {
           half
           error={touched.preferredFoot && errors.preferredFoot}
         >
-          <select
-            id="preferredFoot"
+          <Select
             value={formData.preferredFoot}
-            onChange={set("preferredFoot")}
-            onBlur={blur("preferredFoot")}
-            aria-invalid={!!(touched.preferredFoot && errors.preferredFoot)}
-            className={`${selectBase} ${errBorder("preferredFoot")}`}
+            onValueChange={setValue("preferredFoot")}
           >
-            <option value="">Select foot</option>
-            <option value="Right">Right</option>
-            <option value="Left">Left</option>
-            <option value="Both">Both</option>
-          </select>
+            <SelectTrigger
+              size="lg"
+              id="preferredFoot"
+              aria-invalid={!!(touched.preferredFoot && errors.preferredFoot)}
+              className={`${selectBase} ${errBorder("preferredFoot")}`}
+              onBlur={blur("preferredFoot")}
+            >
+              <SelectValue placeholder="Select foot" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Right">Right</SelectItem>
+              <SelectItem value="Left">Left</SelectItem>
+              <SelectItem value="Both">Both</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
       </div>
 
       {/* ── Required personal details ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field id="phone" label="Phone Number" required half error={touched.phone && errors.phone}>
+        <Field id="phone" label="Phone Number" half error={touched.phone && errors.phone}>
           <input
             id="phone"
             type="tel"
@@ -427,7 +454,7 @@ const ProfileRequestForm = () => {
                 value={formData.achievements}
                 onChange={set("achievements")}
                 className={`${inputBase} resize-none`}
-                placeholder="List your awards, titles, or notable accomplishments…"
+                placeholder="List your awards, titles, or notable accomplishments..."
               />
             </Field>
 
@@ -438,7 +465,7 @@ const ProfileRequestForm = () => {
                 value={formData.videoLink}
                 onChange={set("videoLink")}
                 className={inputBase}
-                placeholder="https://youtube.com/watch?v=…"
+                placeholder="https://youtube.com/watch?v=..."
               />
             </Field>
           </div>
@@ -464,7 +491,7 @@ const ProfileRequestForm = () => {
         >
           {isSubmitting ? (
             <>
-              <Spinner /> Submitting…
+              <Spinner /> Submitting...
             </>
           ) : (
             "Submit Request"

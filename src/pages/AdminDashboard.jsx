@@ -32,12 +32,12 @@ import AboutManagement from "../components/admin/AboutManagement";
 import AdminManagement from "../components/admin/AdminManagement";
 import PartnerManagement from "../components/admin/PartnerManagement";
 
-/* â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Design tokens --- */
 const card = "bg-gray-900 border border-white/8 rounded-xl";
 const inputCls =
   "w-full px-3 py-2 bg-gray-800 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50 transition-colors";
 
-/* â”€â”€ Status badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Status badge --- */
 const STATUS_STYLES = {
   pending: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
   "in-progress": "bg-blue-500/10 text-blue-400 border border-blue-500/20",
@@ -55,7 +55,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-/* â”€â”€ Compact KPI card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Compact KPI card --- */
 const KpiCard = ({ icon: Icon, label, value, accent }) => {
   const accents = {
     blue: { icon: "text-blue-400", bg: "bg-blue-500/10" },
@@ -79,7 +79,7 @@ const KpiCard = ({ icon: Icon, label, value, accent }) => {
   );
 };
 
-/* â”€â”€ Sidebar nav config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Sidebar nav config --- */
 const NAV_GROUPS = [
   {
     label: "Core",
@@ -107,7 +107,7 @@ const SYSTEM_ITEMS = [
   { id: "settings", label: "Settings", icon: LockClosedIcon },
 ];
 
-/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Sidebar --- */
 const Sidebar = ({ activeTab, setActiveTab, isSuperAdmin, onLogout }) => (
   <aside className="hidden md:flex w-56 shrink-0 flex-col bg-gray-900 border-r border-white/8 min-h-screen">
     {/* Logo */}
@@ -195,7 +195,7 @@ const Sidebar = ({ activeTab, setActiveTab, isSuperAdmin, onLogout }) => (
   </aside>
 );
 
-/* â”€â”€ Top header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Top header --- */
 const BREADCRUMB_LABELS = {
   overview: "Overview",
   players: "Players",
@@ -244,7 +244,7 @@ const TopHeader = ({ activeTab, adminData, isSuperAdmin }) => {
           />
         </button>
         {open && (
-          <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl py-1 z-30">
+          <div className="absolute right-0 mt-2 w-48 rounded-xl py-1 z-30 ptc-dropdown-panel">
             <div className="px-3 py-2 border-b border-white/8">
               <p className="text-xs text-gray-500">Signed in as</p>
               <p className="text-sm font-medium text-white truncate">
@@ -253,7 +253,7 @@ const TopHeader = ({ activeTab, adminData, isSuperAdmin }) => {
             </div>
             <Link
               to="/"
-              className="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+              className="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 ptc-dropdown-item"
               onClick={() => setOpen(false)}
             >
               Go to site
@@ -265,7 +265,7 @@ const TopHeader = ({ activeTab, adminData, isSuperAdmin }) => {
   );
 };
 
-/* â”€â”€ Enquiries Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Enquiries Section --- */
 /* ── Mobile header (mobile only) ───────────────────────────── */
 const MobileHeader = ({ activeTab, onOpenDrawer }) => (
   <header className="md:hidden sticky top-0 z-30 flex h-14 items-center justify-between px-4 bg-gray-950 border-b border-white/8 shrink-0">
@@ -453,6 +453,7 @@ const MobileTabRail = ({ activeTab, setActiveTab, isSuperAdmin }) => (
 
 const EnquiriesSection = ({ enquiries, updateEnquiryStatus }) => {
   const [filter, setFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState(null);
 
   const FILTERS = [
     { id: "all", label: "All" },
@@ -515,61 +516,109 @@ const EnquiriesSection = ({ enquiries, updateEnquiryStatus }) => {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filtered.map((enq) => (
-                  <tr
-                    key={enq._id}
-                    className="hover:bg-white/3 transition-colors group"
-                  >
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-white">{enq.name}</p>
-                      <p className="text-xs text-gray-500">{enq.email}</p>
-                    </td>
-                    <td className="px-5 py-3.5 hidden md:table-cell">
-                      <p className="text-gray-300 truncate max-w-50">
-                        {enq.subject}
-                      </p>
-                    </td>
-                    <td className="px-5 py-3.5 hidden lg:table-cell text-gray-500 text-xs">
-                      {new Date(enq.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <StatusBadge status={enq.status} />
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {enq.status === "pending" && (
+                  <React.Fragment key={enq._id}>
+                    <tr className="hover:bg-white/3 transition-colors group">
+                      <td className="px-5 py-3.5">
+                        <p className="font-medium text-white">{enq.name}</p>
+                        <p className="text-xs text-gray-500">{enq.email}</p>
+                        <p className="text-xs text-gray-500 md:hidden mt-1">
+                          {enq.subject}
+                        </p>
+                      </td>
+                      <td className="px-5 py-3.5 hidden md:table-cell">
+                        <p className="text-gray-300 truncate max-w-50">
+                          {enq.subject}
+                        </p>
+                      </td>
+                      <td className="px-5 py-3.5 hidden lg:table-cell text-gray-500 text-xs">
+                        {new Date(enq.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <StatusBadge status={enq.status} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex gap-1.5 flex-wrap">
                           <button
+                            type="button"
                             onClick={() =>
-                              updateEnquiryStatus(enq._id, "in-progress")
+                              setExpandedId(
+                                expandedId === enq._id ? null : enq._id,
+                              )
                             }
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                            aria-expanded={expandedId === enq._id}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-white/5 text-gray-300 hover:bg-white/10 transition-colors"
                           >
-                            In Progress
+                            {expandedId === enq._id ? "Hide" : "View"}
                           </button>
-                        )}
-                        {(enq.status === "pending" ||
-                          enq.status === "in-progress") && (
-                          <button
-                            onClick={() =>
-                              updateEnquiryStatus(enq._id, "resolved")
-                            }
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
-                          >
-                            Resolve
-                          </button>
-                        )}
-                        {enq.status !== "closed" && (
-                          <button
-                            onClick={() =>
-                              updateEnquiryStatus(enq._id, "closed")
-                            }
-                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 transition-colors"
-                          >
-                            Close
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                          {enq.status === "pending" && (
+                            <button
+                              onClick={() =>
+                                updateEnquiryStatus(enq._id, "in-progress")
+                              }
+                              className="px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                            >
+                              In Progress
+                            </button>
+                          )}
+                          {(enq.status === "pending" ||
+                            enq.status === "in-progress") && (
+                            <button
+                              onClick={() =>
+                                updateEnquiryStatus(enq._id, "resolved")
+                              }
+                              className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                            >
+                              Resolve
+                            </button>
+                          )}
+                          {enq.status !== "closed" && (
+                            <button
+                              onClick={() =>
+                                updateEnquiryStatus(enq._id, "closed")
+                              }
+                              className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 transition-colors"
+                            >
+                              Close
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedId === enq._id && (
+                      <tr className="bg-white/2">
+                        <td colSpan={5} className="px-5 py-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                                Subject
+                              </p>
+                              <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">
+                                {enq.subject || "No subject provided."}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">
+                                Message
+                              </p>
+                              <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">
+                                {enq.message || "No message provided."}
+                              </p>
+                            </div>
+                            {enq.phone && (
+                              <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                                  Phone
+                                </p>
+                                <p className="text-sm text-gray-200">
+                                  {enq.phone}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -580,7 +629,7 @@ const EnquiriesSection = ({ enquiries, updateEnquiryStatus }) => {
   );
 };
 
-/* â”€â”€ Profile Requests Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Profile Requests Section --- */
 const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
   const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(null);
@@ -719,13 +768,13 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                             {[
                               ["Preferred Foot", p.preferredFoot],
-                              ["Height", p.height ? `${p.height} cm` : "â€”"],
-                              ["Weight", p.weight ? `${p.weight} kg` : "â€”"],
+                              ["Height", p.height ? `${p.height} cm` : "-"],
+                              ["Weight", p.weight ? `${p.weight} kg` : "-"],
                               [
                                 "Experience",
                                 p.yearsOfExperience
                                   ? `${p.yearsOfExperience} yrs`
-                                  : "â€”",
+                                  : "-",
                               ],
                             ].map(([k, v]) => (
                               <div
@@ -736,7 +785,7 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
                                   {k}
                                 </p>
                                 <p className="text-sm font-medium text-white">
-                                  {v || "â€”"}
+                                  {v || "-"}
                                 </p>
                               </div>
                             ))}
@@ -781,7 +830,7 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
   );
 };
 
-/* â”€â”€ Overview pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Overview pane --- */
 const OverviewPane = ({ stats, enquiries, profileRequests, setActiveTab }) => (
   <div className="space-y-6">
     {/* KPI row */}
@@ -923,7 +972,7 @@ const OverviewPane = ({ stats, enquiries, profileRequests, setActiveTab }) => (
   </div>
 );
 
-/* â”€â”€ Settings pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Settings pane --- */
 const SettingsPane = ({ adminData }) => {
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -1227,7 +1276,7 @@ const SettingsPane = ({ adminData }) => {
                     disabled={pwOtpLoading}
                     className="px-3 py-1.5 bg-blue-600/80 hover:bg-blue-600 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                   >
-                    {pwOtpLoading ? "Sendingâ€¦" : "Send OTP to Email"}
+                    {pwOtpLoading ? "Sending..." : "Send OTP to Email"}
                   </button>
                 ) : (
                   <>
@@ -1247,7 +1296,7 @@ const SettingsPane = ({ adminData }) => {
                       disabled={pwOtpLoading || pwOtpValue.length !== 6}
                       className="px-3 py-1.5 bg-green-700/80 hover:bg-green-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                     >
-                      {pwOtpLoading ? "Verifyingâ€¦" : "Verify"}
+                      {pwOtpLoading ? "Verifying..." : "Verify"}
                     </button>
                     <button
                       type="button"
@@ -1273,7 +1322,7 @@ const SettingsPane = ({ adminData }) => {
             disabled={changingPassword || !pwOtpVerified}
             className="px-5 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {changingPassword ? "Changingâ€¦" : "Change Password"}
+            {changingPassword ? "Changing..." : "Change Password"}
           </button>
         </form>
       </div>
@@ -1281,7 +1330,7 @@ const SettingsPane = ({ adminData }) => {
   );
 };
 
-/* â”€â”€ Content wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* --- Content wrapper --- */
 const ContentPanel = ({ activeTab }) => (
   <div className={`${card} p-4 sm:p-6 overflow-x-hidden`}>
     {activeTab === "players" && <PlayerManagement />}
@@ -1294,9 +1343,7 @@ const ContentPanel = ({ activeTab }) => (
   </div>
 );
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   MAIN COMPONENT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* === MAIN COMPONENT === */
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
@@ -1414,7 +1461,7 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-red-500 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Loading dashboardâ€¦</p>
+          <p className="text-sm text-gray-500">Loading dashboard...</p>
         </div>
       </div>
     );
