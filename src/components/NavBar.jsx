@@ -260,7 +260,7 @@ const IconProfile = () => (
 const NavBar = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
-  const isLoggedIn = !!localStorage.getItem("adminToken");
+  const isLoggedIn = !!localStorage.getItem("adminSession");
   const [pressedTab, setPressedTab] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -400,7 +400,11 @@ const NavBar = () => {
       {/* ── Bottom tab bar — 5 items, MD3 pill active state ────────── */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f12] border-t border-white/[0.07]"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{
+          paddingBottom: "max(6px, env(safe-area-inset-bottom))",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
         aria-label="Mobile navigation"
       >
         <ul className="flex h-16">
@@ -502,7 +506,7 @@ const NavBar = () => {
           {/* Sheet */}
           <div
             className="md:hidden fixed left-0 right-0 z-40 bg-[#16161a] rounded-t-[20px] shadow-[0_-8px_32px_rgba(0,0,0,0.5)] animate-slide-up-sheet"
-            style={{ bottom: 64 }}
+            style={{ bottom: "calc(64px + max(6px, env(safe-area-inset-bottom)))" }}
             role="dialog"
             aria-modal="true"
             aria-label="More options"

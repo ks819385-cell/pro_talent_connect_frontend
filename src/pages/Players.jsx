@@ -155,6 +155,7 @@ const ScoreBar = ({ score, grade }) => {
   const style = getGradeStyle(grade);
   const isHigh = score > 75;
   const barColor = isHigh ? "#C4161C" : style?.color || "#6B7280";
+  const clampedScore = Math.max(0, Math.min(100, Number(score) || 0));
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -188,12 +189,12 @@ const ScoreBar = ({ score, grade }) => {
         </span>
       </div>
       <div
-        className="w-full rounded-full overflow-hidden"
-        style={{ height: "3px", background: "rgba(255,255,255,0.08)" }}
+        className="h-1.5 w-full rounded-full overflow-hidden"
+        style={{ background: "rgba(255,255,255,0.12)" }}
       >
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${score}%`, background: barColor }}
+          style={{ width: `${clampedScore}%`, background: barColor }}
         />
       </div>
     </div>
@@ -296,13 +297,13 @@ const MobileSkeletonCard = () => (
 /* -- Mobile Player Card ---------------------------------------- */
 /*
   UX Laws applied:
-  � Fitts's Law       � entire row tappable, min ~88px touch height
-  � Miller's Law      � 3 lines of info max, short position codes
-  � Serial Position   � name (most important) in top-left anchor
-  � Von Restorff      � grade badge stands out with brand color
-  � Gestalt Proximity � related info grouped tightly in 3 rows
-  � Zeigarnik Effect  � score bar implies incompleteness ? drives tap
-  � Aesthetic-Usability� consistent spacing, clear type hierarchy
+  - Fitts's Law: entire row tappable, min ~88px touch height
+  - Miller's Law: 3 lines of info max, short position codes
+  - Serial Position: name (most important) in top-left anchor
+  - Von Restorff: grade badge stands out with brand color
+  - Gestalt Proximity: related info grouped tightly in 3 rows
+  - Zeigarnik Effect: score bar implies incompleteness and drives tap
+  - Aesthetic-Usability: consistent spacing, clear type hierarchy
 */
 const POS_CODES = {
   goalkeeper: "GK",
@@ -326,7 +327,7 @@ const MobilePlayerCard = ({ player, onViewProfile }) => {
   const posCode =
     POS_CODES[player.playingPosition?.toLowerCase()] ||
     player.playingPosition?.slice(0, 3).toUpperCase() ||
-    "�";
+    "N/A";
 
   return (
     <div
@@ -349,7 +350,7 @@ const MobilePlayerCard = ({ player, onViewProfile }) => {
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      {/* -- Avatar (68�68, rounded-xl) -- */}
+      {/* -- Avatar (68x68, rounded-xl) -- */}
       <div
         className="relative shrink-0 rounded-xl overflow-hidden"
         style={{
@@ -380,7 +381,7 @@ const MobilePlayerCard = ({ player, onViewProfile }) => {
               "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%)",
           }}
         />
-        {/* Age pill � bottom center */}
+        {/* Age pill - bottom center */}
         {player.age && (
           <span
             className="absolute bottom-1 left-0 right-0 text-center font-bold text-white"
@@ -391,7 +392,7 @@ const MobilePlayerCard = ({ player, onViewProfile }) => {
         )}
       </div>
 
-      {/* -- Content � 3 tight rows -- */}
+      {/* -- Content - 3 tight rows -- */}
       <div className="flex-1 min-w-0">
         {/* Row 1 : Name  +  Grade badge (Von Restorff) */}
         <div className="flex items-center justify-between gap-2">
@@ -739,7 +740,7 @@ const MobileFilterDrawer = ({
           </div>
         </div>
 
-        {/* Apply CTA � Fitts's Law: full-width, 56px */}
+        {/* Apply CTA - Fitts's Law: full-width, 56px */}
         <div
           className="px-5 pt-3 pb-4 shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
@@ -811,7 +812,7 @@ const NoResults = ({ onReset }) => (
         cursor: "pointer",
       }}
     >
-      Reset all filters →
+      Reset all filters
     </button>
   </div>
 );
@@ -867,7 +868,7 @@ const PlayerCardGrid = ({ player, onViewProfile }) => {
               fontSize: "11px",
             }}
           >
-            {player.playingPosition || "—"}
+            {player.playingPosition || "N/A"}
           </span>
         </div>
         {/* Grade badge top-right */}
@@ -1088,7 +1089,7 @@ const PlayerCardList = ({ player, onViewProfile }) => {
             fontWeight: 500,
           }}
         >
-          {player.playingPosition || "—"}
+          {player.playingPosition || "N/A"}
         </span>
       </div>
 
@@ -1099,7 +1100,7 @@ const PlayerCardList = ({ player, onViewProfile }) => {
           className="truncate"
           style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)" }}
         >
-          {currentClub || "—"}
+          {currentClub || "N/A"}
         </p>
       </div>
 
@@ -1114,7 +1115,7 @@ const PlayerCardList = ({ player, onViewProfile }) => {
         >
           {player.state
             ? `${player.state}${player.nationality ? `, ${player.nationality}` : ""}`
-            : "—"}
+            : "N/A"}
         </p>
       </div>
 
@@ -1128,7 +1129,7 @@ const PlayerCardList = ({ player, onViewProfile }) => {
             color: "rgba(255,255,255,0.7)",
           }}
         >
-          {player.age || "—"}
+          {player.age || "N/A"}
         </p>
       </div>
 
@@ -1145,7 +1146,7 @@ const PlayerCardList = ({ player, onViewProfile }) => {
               color: gradeStyle.color,
             }}
           >
-            {player.scoutReport?.totalScore ?? "—"}
+            {player.scoutReport?.totalScore ?? "N/A"}
             <span
               style={{
                 fontSize: "11px",
@@ -1355,12 +1356,12 @@ const Players = () => {
     },
     (filters.ageMin || filters.ageMax) && {
       key: "age",
-      label: `Age: ${filters.ageMin || "any"}–${filters.ageMax || "any"}`,
+      label: `Age: ${filters.ageMin || "any"}-${filters.ageMax || "any"}`,
     },
     filters.state && { key: "state", label: `State: ${filters.state}` },
     (filters.heightMin || filters.heightMax) && {
       key: "height",
-      label: `Height: ${filters.heightMin || "any"}–${filters.heightMax || "any"} cm`,
+      label: `Height: ${filters.heightMin || "any"}-${filters.heightMax || "any"} cm`,
     },
   ].filter(Boolean);
 
@@ -1632,7 +1633,7 @@ const Players = () => {
                       color: currentPage === 1 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)",
                     }}
                   >
-                    ← Prev
+                    Prev
                   </button>
                   <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>
                     {currentPage} / {totalPages}
@@ -1649,7 +1650,7 @@ const Players = () => {
                       color: currentPage === totalPages ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)",
                     }}
                   >
-                    Next →
+                    Next
                   </button>
                 </div>
               )}
@@ -2148,7 +2149,7 @@ const Players = () => {
                             color: currentPage === 1 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)",
                           }}
                         >
-                          ← Previous
+                          Previous
                         </button>
                         <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.4)" }}>
                           Page {currentPage} of {totalPages}
@@ -2165,7 +2166,7 @@ const Players = () => {
                             color: currentPage === totalPages ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.6)",
                           }}
                         >
-                          Next →
+                          Next
                         </button>
                       </div>
                     )}

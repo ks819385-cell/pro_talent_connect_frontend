@@ -28,6 +28,13 @@ const TabFallback = () => (
   </div>
 );
 
+const formatPlayerId = (playerId) => {
+  if (!playerId) return "—";
+  if (playerId.startsWith("PL_TEMP_")) return "Player Has No ID";
+  if (playerId.startsWith("Player Has No ID")) return "Player Has No ID";
+  return playerId;
+};
+
 /* -----------------------------------------------------------
    MAIN COMPONENT
 ----------------------------------------------------------- */
@@ -146,7 +153,7 @@ const PlayerDetailPage = ({ player, onClose, isLoading = false }) => {
 
     // ── Basic info grid (2 columns) ─────────────────────────────
     const infoLeft = [
-      ["Player ID",      player.playerId  || "—"],
+      ["Player ID",      formatPlayerId(player.playerId)],
       ["Date of Birth",  player.dateOfBirth ? new Date(player.dateOfBirth).toLocaleDateString("en-GB") : "—"],
       ["Age",            player.age ? `${player.age} years` : "—"],
       ["Gender",         player.gender    || "—"],
@@ -365,7 +372,7 @@ const PlayerDetailPage = ({ player, onClose, isLoading = false }) => {
                   )}
                 </div>
 
-                {/* Score box � visible sm+ */}
+                {/* Score box - visible sm+ */}
                 {player.scoutReport?.totalScore > 0 && gStyle && (
                   <div
                     className={`hidden sm:flex w-20 h-20 rounded-xl border flex-col items-center justify-center shrink-0 ${gStyle.bg} ${gStyle.border}`}
@@ -465,7 +472,7 @@ const PlayerDetailPage = ({ player, onClose, isLoading = false }) => {
 
           {/* -- Page Content -- */}
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-20">
-            {/* Overview is eagerly loaded � always the first visible tab */}
+            {/* Overview is eagerly loaded - always the first visible tab */}
             {activeTab === "overview" && (
               <OverviewTab
                 player={player}

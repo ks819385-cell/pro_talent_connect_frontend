@@ -83,7 +83,7 @@ export default function DOBCalendarPicker({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  // Outside click � must check BOTH trigger wrapper AND portal panel
+  // Outside click - must check BOTH trigger wrapper AND portal panel
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {

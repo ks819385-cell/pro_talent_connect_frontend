@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../../services/api";
+import { useFeedback } from "../../context/FeedbackContext";
 import {
   PencilSquareIcon,
   TrashIcon,
@@ -15,6 +16,7 @@ import {
 } from "../ui/select";
 
 const BlogManagement = () => {
+  const { showToast, confirm } = useFeedback();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -61,26 +63,41 @@ const BlogManagement = () => {
       
       if (editingBlog) {
         await api.updateBlog(editingBlog._id, blogData);
+        showToast("Blog updated successfully", { type: "success" });
       } else {
         await api.createBlog(blogData);
+        showToast("Blog created successfully", { type: "success" });
       }
       fetchBlogs();
       closeModal();
     } catch (error) {
       console.error("Error saving blog:", error);
-      alert(error.response?.data?.message || "Failed to save blog");
+      showToast(error.response?.data?.message || "Failed to save blog", {
+        type: "error",
+      });
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this blog post?")) return;
+    const shouldDelete = await confirm({
+      title: "Delete Blog Post",
+      message: "Are you sure you want to delete this blog post? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+
+    if (!shouldDelete) return;
     
     try {
       await api.deleteBlog(id);
+      showToast("Blog deleted successfully", { type: "success" });
       fetchBlogs();
     } catch (error) {
       console.error("Error deleting blog:", error);
-      alert(error.response?.data?.message || "Failed to delete blog");
+      showToast(error.response?.data?.message || "Failed to delete blog", {
+        type: "error",
+      });
     }
   };
 

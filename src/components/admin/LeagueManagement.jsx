@@ -6,6 +6,7 @@ import {
   TrashIcon,
   XMarkIcon,
   CheckIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import {
   Select,
@@ -44,6 +45,9 @@ export default function LeagueManagement() {
   const [addForm, setAddForm]       = useState({ name: "", tier: "State Tier" });
   const [saving, setSaving]         = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, name }
+  const [search, setSearch]         = useState("");
+  const [tierFilter, setTierFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchLeagues = useCallback(async () => {
     try {
@@ -59,11 +63,20 @@ export default function LeagueManagement() {
 
   useEffect(() => { fetchLeagues(); }, [fetchLeagues]);
 
-  // Group by tier for display
-  const grouped = TIERS.map((tier) => ({
-    tier,
-    items: leagues.filter((l) => l.tier === tier),
-  })).filter((g) => g.items.length > 0 || g.tier === "State Tier");
+  const normalizedSearch = search.trim().toLowerCase();
+  const activeCount = leagues.filter((l) => l.active).length;
+  const inactiveCount = leagues.length - activeCount;
+
+  const filteredLeagues = leagues.filter((league) => {
+    const matchesSearch = !normalizedSearch || league.name.toLowerCase().includes(normalizedSearch);
+    const matchesTier = tierFilter === "all" || league.tier === tierFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && league.active) ||
+      (statusFilter === "inactive" && !league.active);
+
+    return matchesSearch && matchesTier && matchesStatus;
+  });
 
   const startEdit = (league) => {
     setEditingId(league._id);
@@ -146,6 +159,60 @@ export default function LeagueManagement() {
         </button>
       </div>
 
+      {/* Snapshot cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="bg-white/4 border border-white/10 rounded-xl px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-gray-500">Total Leagues</p>
+          <p className="text-2xl font-bold text-white mt-1">{leagues.length}</p>
+        </div>
+        <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-green-300/70">Active</p>
+          <p className="text-2xl font-bold text-green-300 mt-1">{activeCount}</p>
+        </div>
+        <div className="bg-gray-500/10 border border-gray-500/20 rounded-xl px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-gray-400">Inactive</p>
+          <p className="text-2xl font-bold text-gray-300 mt-1">{inactiveCount}</p>
+        </div>
+      </div>
+
+      {/* Search and filters */}
+      <div className="mb-6 p-3 bg-white/5 border border-white/10 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="relative">
+          <MagnifyingGlassIcon className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search leagues by name"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white"
+          />
+        </div>
+
+        <Select value={tierFilter} onValueChange={setTierFilter}>
+          <SelectTrigger className={selectCls}>
+            <SelectValue placeholder="Filter by tier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tiers</SelectItem>
+            {TIERS.map((tier) => (
+              <SelectItem key={tier} value={tier}>
+                {tier}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className={selectCls}>
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="active">Active only</SelectItem>
+            <SelectItem value="inactive">Inactive only</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {error && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
           {error}
@@ -216,8 +283,24 @@ export default function LeagueManagement() {
         </div>
       ) : (
         <div className="space-y-6">
+          {filteredLeagues.length === 0 && (
+            <div className="bg-white/3 border border-white/8 rounded-xl p-8 text-center">
+              <p className="text-sm text-gray-300">No leagues match your current filters.</p>
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setTierFilter("all");
+                  setStatusFilter("all");
+                }}
+                className="mt-3 px-3 py-1.5 text-xs font-medium rounded-md bg-white/10 hover:bg-white/20 text-gray-200 transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+
           {TIERS.map((tier) => {
-            const items = leagues.filter((l) => l.tier === tier);
+            const items = filteredLeagues.filter((l) => l.tier === tier);
             if (items.length === 0) return null;
             return (
               <div key={tier}>

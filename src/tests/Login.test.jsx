@@ -6,6 +6,7 @@ import { api } from '../services/api';
 
 // Mock the api module
 vi.mock('../services/api', () => ({
+  fetchCsrfToken: vi.fn().mockResolvedValue(undefined),
   api: {
     login: vi.fn(),
   },
@@ -107,7 +108,7 @@ describe('Login page', () => {
   });
 
   it('redirects to /admin if already logged in', () => {
-    localStorage.setItem('adminToken', 'existing-token');
+    localStorage.setItem('adminSession', '1');
     renderLogin();
     expect(mockNavigate).toHaveBeenCalledWith('/admin');
   });

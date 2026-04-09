@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { api } from "../services/api";
+import { api, fetchCsrfToken } from "../services/api";
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -22,16 +22,20 @@ const Login = () => {
   const [error, setError] = useState("");
 
   // Sync login state across tabs: if another tab logs in, redirect to admin
+  // Also fetch CSRF token on mount for form submissions
   useEffect(() => {
+    // Fetch CSRF token on mount for form submissions
+    fetchCsrfToken();
+
     // Check if already logged in on mount
-    const token = localStorage.getItem("adminToken");
-    if (token) {
+    const session = localStorage.getItem("adminSession");
+    if (session) {
       navigate("/admin");
       return;
     }
 
     const handleStorageChange = (e) => {
-      if (e.key === "adminToken" && e.newValue) {
+      if (e.key === "adminSession" && e.newValue) {
         navigate("/admin");
       }
     };
@@ -48,15 +52,14 @@ const Login = () => {
       const response = await api.login(formData);
 
       // Validate response data
-      if (!response.data || !response.data.token) {
+      if (!response.data) {
         throw new Error("Invalid response from server");
       }
 
-      // Store token in localStorage (TODO: Move to httpOnly cookies in future)
-      localStorage.setItem("adminToken", response.data.token);
+      localStorage.setItem("adminSession", "1");
 
       // Store admin data (excluding token)
-      const { ...adminData } = response.data;
+      const { token, ...adminData } = response.data;
       localStorage.setItem("adminData", JSON.stringify(adminData));
 
       // Redirect to admin dashboard
@@ -176,9 +179,12 @@ const Login = () => {
                 />
                 <span className="text-gray-400">Remember me</span>
               </label>
-              <span className="text-gray-500 cursor-not-allowed">
+              <Link
+                to="/forgot-password"
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
                 Forgot password?
-              </span>
+              </Link>
             </div>
 
             {/* Submit Button */}

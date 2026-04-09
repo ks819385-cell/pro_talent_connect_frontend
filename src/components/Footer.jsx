@@ -116,11 +116,17 @@ const Footer = () => {
     {
       title: "Legal",
       links: [
-        { name: "Privacy Policy", to: "#" },
-        { name: "Terms of Service", to: "#" },
-        { name: "Cookie Policy", to: "#" },
+        { name: "Privacy Policy", to: "/privacy-policy" },
+        { name: "Terms of Service", to: "/terms-of-service" },
+        { name: "Cookie Policy", to: "/cookie-policy" },
       ],
     },
+  ];
+
+  const legalLinks = [
+    { label: "Privacy Policy", to: "/privacy-policy" },
+    { label: "Terms of Service", to: "/terms-of-service" },
+    { label: "Cookie Policy", to: "/cookie-policy" },
   ];
 
   return (
@@ -222,7 +228,7 @@ const Footer = () => {
             className="text-white/45"
             style={{ fontSize: "15px", lineHeight: 1.65, margin: "0 0 28px" }}
           >
-            Player spotlights, scouting trends, and recruitment insights —
+            Player spotlights, scouting trends, and recruitment insights,
             delivered to your inbox.
           </p>
 
@@ -239,7 +245,7 @@ const Footer = () => {
                 className="text-emerald-400 font-semibold"
                 style={{ margin: 0, fontSize: "15px" }}
               >
-                ✓ You&apos;re in! Welcome to the inner circle.
+                Thanks! You are in. Welcome to the inner circle.
               </p>
             </div>
           ) : (
@@ -345,13 +351,53 @@ const Footer = () => {
               className="text-white/30"
               style={{ fontSize: "12px", margin: "12px 0 0" }}
             >
-              🔒 No spam. Only elite scouting insights.
+              Secure: No spam. Only elite scouting insights.
             </p>
           )}
         </div>
 
         {/* ══ MOBILE FOOTER — Blinkit-style ══════════════════════ */}
         <div className="md:hidden" style={{ paddingTop: "32px" }}>
+          {/* Mobile CTA */}
+          <div
+            style={{
+              marginBottom: "18px",
+              padding: "14px",
+              borderRadius: "14px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.04)",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "13px",
+                color: "rgba(255,255,255,0.75)",
+                margin: "0 0 10px",
+                lineHeight: 1.5,
+              }}
+            >
+              Want scouting updates and football insights?
+            </p>
+            <Link
+              to="/blog"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                height: "42px",
+                borderRadius: "10px",
+                background: "#C4161C",
+                color: "#fff",
+                textDecoration: "none",
+                fontSize: "14px",
+                fontWeight: 700,
+              }}
+            >
+              Explore Articles
+            </Link>
+          </div>
+
           {/* Row 1: Logo + Social icons */}
           <div
             style={{
@@ -572,27 +618,38 @@ const Footer = () => {
           <p className="text-white/25" style={{ fontSize: "12px", margin: 0 }}>
             © {currentYear} Pro Talent Connect. All rights reserved.
           </p>
-          {/* Mobile: legal links row | Desktop: tagline */}
-          <div className="flex items-center gap-4 md:hidden">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(
-              (label, i, arr) => (
+          {/* Mobile: legal links row + credit | Desktop: tagline + credit */}
+          <div className="flex flex-col gap-2 md:hidden">
+            <p className="text-white/25" style={{ fontSize: "11px", margin: 0 }}>
+              Built by{" "}
+              <a
+                href="https://www.instagram.com/lasyworks"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "rgba(255,255,255,0.5)", textDecoration: "none" }}
+              >
+                Lasyworks
+              </a>
+            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {legalLinks.map((item, i, arr) => (
                 <span
-                  key={label}
+                  key={item.label}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "16px",
+                    gap: "10px",
                   }}
                 >
                   <Link
-                    to="#"
+                    to={item.to}
                     style={{
                       fontSize: "11px",
                       color: "rgba(255,255,255,0.25)",
                       textDecoration: "none",
                     }}
                   >
-                    {label}
+                    {item.label}
                   </Link>
                   {i < arr.length - 1 && (
                     <span
@@ -605,15 +662,24 @@ const Footer = () => {
                     />
                   )}
                 </span>
-              ),
-            )}
+              ))}
+            </div>
           </div>
-          <p
-            className="hidden md:block text-white/20"
-            style={{ fontSize: "12px", margin: 0 }}
-          >
-            Built for athletes. Powered by passion.
-          </p>
+          <div className="hidden md:flex items-center gap-4 text-white/20" style={{ fontSize: "12px" }}>
+            <p style={{ margin: 0 }}>Built for athletes. Powered by passion.</p>
+            <span style={{ color: "rgba(255,255,255,0.18)" }}>|</span>
+            <p style={{ margin: 0 }}>
+              Built by{" "}
+              <a
+                href="https://www.instagram.com/lasyworks"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}
+              >
+                Lasyworks
+              </a>
+            </p>
+          </div>
         </div>
       </div>
 

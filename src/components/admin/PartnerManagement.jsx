@@ -4,8 +4,8 @@ import {
   PencilIcon,
   TrashIcon,
   XMarkIcon,
-  CheckIcon,
 } from "@heroicons/react/24/outline";
+import { useFeedback } from "../../context/FeedbackContext";
 import {
   DEFAULT_PARTNERS,
   STORAGE_KEY,
@@ -326,15 +326,10 @@ const PartnerRow = ({ partner, onEdit, onDelete }) => {
 
 /* ─── Main management component ─── */
 const PartnerManagement = () => {
+  const { showToast } = useFeedback();
   const [partners, setPartners] = useState(getPartners);
   const [modal, setModal] = useState(null); // null | { mode: "add" } | { mode: "edit", partner }
   const [deleteConfirm, setDeleteConfirm] = useState(null); // id to delete
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const persist = (updated) => {
     setPartners(updated);
@@ -369,18 +364,6 @@ const PartnerManagement = () => {
 
   return (
     <div className="relative space-y-5">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium text-white border transition-all ${
-          toast.type === "error"
-            ? "bg-red-500/90 border-red-400/50"
-            : "bg-green-600/90 border-green-400/50"
-        }`}>
-          {toast.type === "error" ? <TrashIcon className="w-4 h-4" /> : <CheckIcon className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
-
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

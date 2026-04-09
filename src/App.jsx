@@ -18,7 +18,11 @@ const Players = lazy(() => import("./pages/Players"));
 const Services = lazy(() => import("./pages/Services"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Login = lazy(() => import("./pages/Login"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const Pagenotfound = lazy(() => import("./components/Pagenotfound"));
 
 // Loading fallback for lazy-loaded routes
@@ -37,13 +41,17 @@ function App() {
   // Don't show NavBar and Footer for login and admin pages
   const showLayout =
     !location.pathname.includes("login") &&
+    !location.pathname.includes("forgot-password") &&
     !location.pathname.includes("admin");
 
   return (
     <div className="min-h-screen">
       <ScrollToTop />
       {showLayout && <NavBar />}
-      <div className="md:pb-0 pb-16">
+      <div
+        className="md:pb-0"
+        style={{ paddingBottom: showLayout ? "calc(72px + env(safe-area-inset-bottom))" : 0 }}
+      >
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route
@@ -64,7 +72,11 @@ function App() {
             <Route path="/blog/:id" element={<BlogDetailPage />} />
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Pagenotfound />} />
           </Routes>

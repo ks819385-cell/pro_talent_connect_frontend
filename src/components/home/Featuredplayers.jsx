@@ -100,14 +100,15 @@ const FeaturedPlayers = () => {
   const scrollRef = useRef(null);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [activePage, setActivePage] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         const base = import.meta.env.VITE_API_URL || "http://localhost:5001";
-        const res = await axios.get(`${base}/api/players?limit=100`);
+        const res = await axios.get(`${base}/api/v1/players?limit=100`);
         const all = res.data.players || res.data || [];
         const unique = Array.from(new Map(all.map((p) => [p._id, p])).values());
         const sorted = unique
@@ -124,25 +125,39 @@ const FeaturedPlayers = () => {
 
   const featured = players;
 
-  const handleScroll = useCallback(() => {
+  const updatePager = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = el.firstChild?.offsetWidth || 1;
-    setActiveIdx(Math.round(el.scrollLeft / (cardW + 12)));
+
+    const totalScrollable = Math.max(0, el.scrollWidth - el.clientWidth);
+    const pages = totalScrollable === 0 ? 1 : Math.ceil(totalScrollable / el.clientWidth) + 1;
+    const page = totalScrollable === 0 ? 0 : Math.round(el.scrollLeft / el.clientWidth);
+
+    setPageCount(pages);
+    setActivePage(Math.min(pages - 1, Math.max(0, page)));
   }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+    updatePager();
+    el.addEventListener("scroll", updatePager, { passive: true });
+    window.addEventListener("resize", updatePager);
+    return () => {
+      el.removeEventListener("scroll", updatePager);
+      window.removeEventListener("resize", updatePager);
+    };
+  }, [updatePager]);
 
-  const scrollTo = (idx) => {
+  useEffect(() => {
+    // Recompute paging once cards are rendered/updated.
+    requestAnimationFrame(updatePager);
+  }, [featured.length, updatePager]);
+
+  const scrollToPage = (idx) => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardW = el.firstChild?.offsetWidth || 260;
-    el.scrollTo({ left: idx * (cardW + 12), behavior: "smooth" });
+    el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
   };
 
   /* --- Loading --- */
@@ -310,22 +325,25 @@ const FeaturedPlayers = () => {
       </div>
 
       {/* --- Scroll dots --- */}
-      <div className="flex items-center justify-center mt-4" style={{ gap: "7px" }} aria-hidden="true">
-        {featured.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => scrollTo(i)}
-            aria-label={`Go to player ${i + 1}`}
-            className="border-none p-0 cursor-pointer rounded-full transition-all duration-300"
-            style={{
-              width: i === activeIdx ? "20px" : "6px",
-              height: "6px",
-              background: i === activeIdx ? "#C4161C" : "rgba(255,255,255,0.2)",
-              boxShadow: i === activeIdx ? "0 0 6px rgba(196,22,28,0.5)" : "none",
-            }}
-          />
-        ))}
-      </div>
+      {pageCount > 1 && (
+        <div className="flex items-center justify-center mt-4" style={{ gap: "7px" }}>
+          {Array.from({ length: pageCount }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToPage(i)}
+              aria-label={`Go to page ${i + 1}`}
+              aria-current={i === activePage ? "true" : undefined}
+              className="border-none p-0 cursor-pointer rounded-full transition-all duration-300"
+              style={{
+                width: i === activePage ? "20px" : "6px",
+                height: "6px",
+                background: i === activePage ? "#C4161C" : "rgba(255,255,255,0.2)",
+                boxShadow: i === activePage ? "0 0 6px rgba(196,22,28,0.5)" : "none",
+              }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 };

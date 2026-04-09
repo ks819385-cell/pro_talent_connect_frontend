@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { api } from "../services/api";
+import { api, fetchCsrfToken } from "../services/api";
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -633,6 +633,7 @@ const EnquiriesSection = ({ enquiries, updateEnquiryStatus }) => {
 const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
   const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(null);
+  const [viewRequest, setViewRequest] = useState(null);
 
   const FILTERS = [
     { id: "all", label: "All" },
@@ -728,6 +729,12 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => setViewRequest(p)}
+                            className="px-2.5 py-1 rounded-md text-xs font-medium bg-white/10 text-gray-200 hover:bg-white/20 transition-colors"
+                          >
+                            View
+                          </button>
                           {p.status === "pending" && (
                             <button
                               onClick={() =>
@@ -811,9 +818,10 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
                               href={p.videoLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-red-400 hover:underline"
+                              className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors"
                             >
-                              View highlight video →
+                              <EyeIcon className="w-3.5 h-3.5" />
+                              Open highlight video
                             </a>
                           )}
                         </td>
@@ -826,6 +834,86 @@ const ProfileRequestsSection = ({ profileRequests, updateProfileStatus }) => {
           </div>
         )}
       </div>
+
+      {/* Full Request View Modal */}
+      {viewRequest && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setViewRequest(null);
+          }}
+        >
+          <div className="w-full max-w-3xl max-h-[88vh] overflow-y-auto bg-gray-900 border border-white/10 rounded-2xl shadow-2xl">
+            <div className="sticky top-0 z-10 bg-gray-900/95 backdrop-blur border-b border-white/10 px-5 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">{viewRequest.fullName}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Complete profile request details</p>
+              </div>
+              <button
+                onClick={() => setViewRequest(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Close request view"
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  ["Status", viewRequest.status],
+                  ["Playing Position", viewRequest.playingPosition],
+                  ["Preferred Foot", viewRequest.preferredFoot],
+                  ["Date of Birth", viewRequest.dateOfBirth ? new Date(viewRequest.dateOfBirth).toLocaleDateString() : "-"],
+                  ["Nationality", viewRequest.nationality],
+                  ["City", viewRequest.city],
+                  ["Phone", viewRequest.phone],
+                  ["Email", viewRequest.email],
+                  ["Current Club", viewRequest.currentClub || "-"],
+                  ["Height", viewRequest.height ? `${viewRequest.height} cm` : "-"],
+                  ["Weight", viewRequest.weight ? `${viewRequest.weight} kg` : "-"],
+                  ["Experience", viewRequest.yearsOfExperience ? `${viewRequest.yearsOfExperience} years` : "-"],
+                  ["Submitted On", viewRequest.createdAt ? new Date(viewRequest.createdAt).toLocaleString() : "-"],
+                  ["Last Updated", viewRequest.updatedAt ? new Date(viewRequest.updatedAt).toLocaleString() : "-"],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-white/5 border border-white/8 rounded-xl p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">{label}</p>
+                    <p className="text-sm text-white break-words">{value || "-"}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white/5 border border-white/8 rounded-xl p-3">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Achievements</p>
+                  <p className="text-sm text-gray-200 whitespace-pre-wrap">{viewRequest.achievements || "-"}</p>
+                </div>
+
+                {viewRequest.videoLink && (
+                  <div className="bg-white/5 border border-white/8 rounded-xl p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Highlight Video</p>
+                    <a
+                      href={viewRequest.videoLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-red-400 hover:underline break-all"
+                    >
+                      {viewRequest.videoLink}
+                    </a>
+                  </div>
+                )}
+
+                {viewRequest.adminNotes && (
+                  <div className="bg-white/5 border border-white/8 rounded-xl p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Admin Notes</p>
+                    <p className="text-sm text-gray-200 whitespace-pre-wrap">{viewRequest.adminNotes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -901,9 +989,10 @@ const OverviewPane = ({ stats, enquiries, profileRequests, setActiveTab }) => (
           <h3 className="text-sm font-semibold text-white">Recent Enquiries</h3>
           <button
             onClick={() => setActiveTab("enquiries")}
-            className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors"
           >
-            View all →
+            <EyeIcon className="w-3.5 h-3.5" />
+            Open all enquiries
           </button>
         </div>
         {enquiries.length === 0 ? (
@@ -939,9 +1028,10 @@ const OverviewPane = ({ stats, enquiries, profileRequests, setActiveTab }) => (
           </h3>
           <button
             onClick={() => setActiveTab("profiles")}
-            className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors"
           >
-            View all →
+            <EyeIcon className="w-3.5 h-3.5" />
+            Open all profile requests
           </button>
         </div>
         {profileRequests.length === 0 ? (
@@ -1357,18 +1447,23 @@ const AdminDashboard = () => {
 
   const isSuperAdmin = adminData?.role === "Super Admin";
 
+  /* Fetch CSRF token on mount */
+  useEffect(() => {
+    fetchCsrfToken();
+  }, []);
+
   /* Auth guard */
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
+    const session = localStorage.getItem("adminSession");
     const admin = localStorage.getItem("adminData");
-    if (!token || !admin || admin === "undefined") {
+    if (!session || !admin || admin === "undefined") {
       navigate("/login");
       return;
     }
     try {
       setAdminData(JSON.parse(admin));
     } catch {
-      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminSession");
       localStorage.removeItem("adminData");
       navigate("/login");
     }
@@ -1377,7 +1472,7 @@ const AdminDashboard = () => {
   /* Cross-tab logout sync */
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "adminToken" && !e.newValue) navigate("/login");
+      if (e.key === "adminSession" && !e.newValue) navigate("/login");
       if (e.key === "adminData" && e.newValue && e.newValue !== "undefined") {
         try {
           setAdminData(JSON.parse(e.newValue));
@@ -1428,7 +1523,7 @@ const AdminDashboard = () => {
     } catch {
       /* noop */
     } finally {
-      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminSession");
       localStorage.removeItem("adminData");
       navigate("/login");
     }
