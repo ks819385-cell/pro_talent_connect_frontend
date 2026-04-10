@@ -370,7 +370,6 @@ const Partners = () => {
   const [partners, setPartners] = useState(
     () => loadPartners() ?? DEFAULT_PARTNERS,
   );
-  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const refresh = () => setPartners(loadPartners() ?? DEFAULT_PARTNERS);
@@ -384,9 +383,18 @@ const Partners = () => {
     };
   }, []);
 
-  /* Hick's Law: show only 4 initially */
-  const visible = showAll ? partners : partners.slice(0, 4);
-  const hasMore = partners.length > 4;
+  const getLastRowAlignment = (index, total) => {
+    const remainder = total % 3;
+    const isLast = index === total - 1;
+    const isSecondLast = index === total - 2;
+
+    // In a 6-column desktop grid where each card spans 2 columns,
+    // this centers 1 leftover card or 2 leftover cards in the last row.
+    if (remainder === 1 && isLast) return "lg:col-start-3";
+    if (remainder === 2 && isSecondLast) return "lg:col-start-2";
+    if (remainder === 2 && isLast) return "lg:col-start-4";
+    return "";
+  };
 
   return (
     <section className="relative py-24 px-4">
@@ -435,7 +443,7 @@ const Partners = () => {
           mission.
         </p>
 
-        {/* Partner grid — 2 cols mobile, 4 cols desktop */}
+        {/* Partner grid — 2 cols mobile, 3 cols laptop */}
         {partners.length === 0 ? (
           <p
             className="text-center py-16"
@@ -444,41 +452,15 @@ const Partners = () => {
             No partners listed yet.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {visible.map((p) => (
-              <PartnerCard key={p.id} partner={p} />
-            ))}
-          </div>
-        )}
-
-        {/* View All / Show Less — Hick's Law */}
-        {hasMore && (
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => setShowAll((v) => !v)}
-              className="inline-flex items-center gap-2 font-semibold transition-all duration-200 hover:opacity-80"
-              style={{
-                fontSize: "14px",
-                color: "rgba(255,255,255,0.6)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "12px",
-                padding: "10px 24px",
-                background: "rgba(255,255,255,0.04)",
-              }}
-            >
-              {showAll ? "Show Less" : `View All ${partners.length} Partners`}
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`w-4 h-4 transition-transform duration-200 ${showAll ? "rotate-180" : ""}`}
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
+            {partners.map((p, index) => (
+              <div
+                key={p.id}
+                className={`lg:col-span-2 ${getLastRowAlignment(index, partners.length)}`}
               >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
+                <PartnerCard partner={p} />
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  CheckIcon,
   PlusIcon,
   PencilIcon,
   TrashIcon,

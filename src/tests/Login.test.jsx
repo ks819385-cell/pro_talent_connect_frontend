@@ -95,6 +95,36 @@ describe('Login page', () => {
     });
   });
 
+  it('redirects to /admin-activate when activation is required', async () => {
+    api.login.mockRejectedValueOnce({
+      response: {
+        data: {
+          code: 'ACTIVATION_REQUIRED',
+          activationRequired: true,
+          email: 'invite@test.com',
+        },
+      },
+    });
+
+    renderLogin();
+
+    fireEvent.change(screen.getByPlaceholderText(/admin@example\.com/i), {
+      target: { value: 'invite@test.com' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Enter your password/i), {
+      target: { value: 'Password123!' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/admin-activate', {
+        state: { email: 'invite@test.com' },
+      });
+    });
+
+    expect(localStorage.getItem('pendingActivationEmail')).toBe('invite@test.com');
+  });
+
   it('toggles password visibility', () => {
     renderLogin();
     const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
