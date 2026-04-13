@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "../../services/api";
 import { useFeedback } from "../../context/FeedbackContext";
 import {
@@ -17,10 +17,15 @@ import {
 
 const BlogManagement = () => {
   const { showToast, confirm } = useFeedback();
+  const AUTO_REFRESH_MS = 20000;
+  const BLOG_PAGE_SIZE = 50;
+  const DEFAULT_CARDS_PER_PAGE = 9;
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingBlog, setEditingBlog] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cardsPerPage, setCardsPerPage] = useState(DEFAULT_CARDS_PER_PAGE);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -30,28 +35,71 @@ const BlogManagement = () => {
     readTime: 5,
   });
 
-  useEffect(() => {
-    fetchBlogs();
-  }, []);
-
-  const fetchBlogs = async () => {
+  const fetchBlogs = useCallback(async ({ silent = false, force = false } = {}) => {
     try {
-      setLoading(true);
-      const response = await api.getAllBlogs();
-      setBlogs(response.data.blogs || response.data || []);
+      if (!silent) {
+        setLoading(true);
+      }
+
+      if (force) {
+        api.invalidateCache("/blogs");
+      }
+
+      const firstPageResponse = await api.getAllBlogs({ page: 1, limit: BLOG_PAGE_SIZE });
+      const firstPageBlogs = firstPageResponse.data?.blogs || firstPageResponse.data || [];
+      const totalPages = firstPageResponse.data?.totalPages || 1;
+
+      if (totalPages <= 1) {
+        setBlogs(firstPageBlogs);
+        return;
+      }
+
+      const remainingRequests = [];
+      for (let page = 2; page <= totalPages; page += 1) {
+        remainingRequests.push(api.getAllBlogs({ page, limit: BLOG_PAGE_SIZE }));
+      }
+
+      const remainingResponses = await Promise.all(remainingRequests);
+      const remainingBlogs = remainingResponses.flatMap(
+        (res) => res.data?.blogs || res.data || [],
+      );
+
+      setBlogs([...firstPageBlogs, ...remainingBlogs]);
     } catch (error) {
       console.error("Error fetching blogs:", error);
-      // Fallback to public blogs if admin route fails
-      try {
-        const publicResponse = await api.getBlogs();
-        setBlogs(publicResponse.data.blogs || publicResponse.data || []);
-      } catch (err) {
-        console.error("Error fetching public blogs:", err);
+      if (!silent) {
+        showToast(
+          error.response?.data?.message || "Failed to load admin blog list",
+          { type: "error" },
+        );
       }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchBlogs({ force: true });
+  }, [fetchBlogs]);
+
+  useEffect(() => {
+    const refreshBlogs = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchBlogs({ silent: true, force: true });
+    };
+
+    const intervalId = window.setInterval(refreshBlogs, AUTO_REFRESH_MS);
+    window.addEventListener("focus", refreshBlogs);
+    document.addEventListener("visibilitychange", refreshBlogs);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshBlogs);
+      document.removeEventListener("visibilitychange", refreshBlogs);
+    };
+  }, [fetchBlogs]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,7 +116,8 @@ const BlogManagement = () => {
         await api.createBlog(blogData);
         showToast("Blog created successfully", { type: "success" });
       }
-      fetchBlogs();
+      fetchBlogs({ force: true });
+      setCurrentPage(1);
       closeModal();
     } catch (error) {
       console.error("Error saving blog:", error);
@@ -92,7 +141,10 @@ const BlogManagement = () => {
     try {
       await api.deleteBlog(id);
       showToast("Blog deleted successfully", { type: "success" });
-      fetchBlogs();
+      fetchBlogs({ force: true });
+      if (currentPage > 1 && pageStart === pageEnd) {
+        setCurrentPage((previousPage) => Math.max(previousPage - 1, 1));
+      }
     } catch (error) {
       console.error("Error deleting blog:", error);
       showToast(error.response?.data?.message || "Failed to delete blog", {
@@ -140,6 +192,66 @@ const BlogManagement = () => {
     return colors[category] || "bg-gray-500/20 text-gray-400";
   };
 
+  const totalCards = blogs.length;
+  const totalCardPages = Math.max(1, Math.ceil(totalCards / cardsPerPage));
+
+  const paginatedBlogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * cardsPerPage;
+    return blogs.slice(startIndex, startIndex + cardsPerPage);
+  }, [blogs, currentPage, cardsPerPage]);
+
+  const pageStart = totalCards === 0 ? 0 : (currentPage - 1) * cardsPerPage + 1;
+  const pageEnd = Math.min(currentPage * cardsPerPage, totalCards);
+
+  useEffect(() => {
+    setCurrentPage((previousPage) => Math.min(previousPage, totalCardPages));
+  }, [totalCardPages]);
+
+  const goToPage = (nextPage) => {
+    const boundedPage = Math.min(Math.max(nextPage, 1), totalCardPages);
+    setCurrentPage(boundedPage);
+  };
+
+  const paginationItems = useMemo(() => {
+    if (totalCardPages <= 1) {
+      return [1];
+    }
+
+    if (totalCardPages <= 4) {
+      return Array.from({ length: totalCardPages }, (_, index) => index + 1);
+    }
+
+    const leadStart = Math.max(currentPage - 1, 1);
+    const leadPages = [leadStart, leadStart + 1].filter((page) => page <= totalCardPages);
+    const trailingPages = [totalCardPages - 1, totalCardPages];
+
+    const pageSet = new Set([
+      ...leadPages,
+      ...trailingPages,
+    ]);
+
+    const pages = Array.from(pageSet)
+      .filter((page) => page >= 1 && page <= totalCardPages)
+      .sort((a, b) => a - b);
+
+    const items = [];
+
+    pages.forEach((page, index) => {
+      if (index === 0) {
+        items.push(page);
+        return;
+      }
+
+      const previousPage = pages[index - 1];
+      if (page - previousPage > 1) {
+        items.push(`ellipsis-${previousPage}-${page}`);
+      }
+      items.push(page);
+    });
+
+    return items;
+  }, [currentPage, totalCardPages]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -151,102 +263,177 @@ const BlogManagement = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 space-y-1">
           <h3 className="text-xl font-bold">Blog Management</h3>
           <p className="text-sm text-gray-400">
             Manage your blog posts, announcements, and news articles
           </p>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-medium transition-all shrink-0"
-        >
-          <PlusIcon className="w-5 h-5" />
-          New Post
-        </button>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[170px]">
+            <p className="mb-1 text-xs uppercase tracking-wide text-gray-500">
+              Cards Per Page
+            </p>
+            <Select
+              value={String(cardsPerPage)}
+              onValueChange={(value) => {
+                setCardsPerPage(Number.parseInt(value, 10) || DEFAULT_CARDS_PER_PAGE);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger size="sm" className="w-full">
+                <SelectValue placeholder="Cards per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6">6 per page</SelectItem>
+                <SelectItem value="9">9 per page</SelectItem>
+                <SelectItem value="12">12 per page</SelectItem>
+                <SelectItem value="15">15 per page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <button
+            onClick={() => openModal()}
+            className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 font-medium transition-all hover:bg-red-600"
+          >
+            <PlusIcon className="h-5 w-5" />
+            New Post
+          </button>
+        </div>
       </div>
 
       {/* Blog List */}
-      <div className="space-y-4">
-        {blogs.length === 0 ? (
+      <div className="space-y-5">
+        {totalCards === 0 ? (
           <div className="text-center py-12 bg-white/5 rounded-lg border border-white/10">
             <p className="text-gray-400">No blog posts yet. Create your first one!</p>
           </div>
         ) : (
-          blogs.map((blog) => (
-            <div
-              key={blog._id}
-              className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition-all"
-            >
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                {/* Image */}
-                {blog.image && (
-                  <div className="flex-shrink-0">
+          <>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {paginatedBlogs.map((blog) => (
+                <article
+                  key={blog._id}
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] shadow-lg shadow-black/20 transition-all duration-300 hover:-translate-y-1 hover:border-red-400/40 hover:shadow-red-500/10"
+                >
+                  {blog.image ? (
                     <img
                       src={blog.image}
                       alt={blog.title}
-                      className="w-24 h-24 object-cover rounded-lg"
+                      className="h-44 w-full object-cover"
                     />
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryBadge(blog.category)}`}
-                        >
-                          {blog.category}
-                        </span>
-                        {blog.readTime && (
-                          <span className="text-xs text-gray-500">
-                            {blog.readTime} min read
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="font-semibold text-lg mb-1 line-clamp-1">
-                        {blog.title}
-                      </h4>
-                      <p className="text-sm text-gray-400 line-clamp-2 mb-2">
-                        {blog.excerpt || blog.content}
+                  ) : (
+                    <div className="flex h-44 items-end bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+                      <p className="text-xs uppercase tracking-[0.22em] text-gray-400">
+                        Pro Talent Connect
                       </p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span>
-                          By{" "}
-                          {typeof blog.author === "string"
-                            ? blog.author
-                            : blog.author?.name || "Admin"}
-                        </span>
-                        <span>•</span>
-                        <span>
-                          {new Date(blog.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-3 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${getCategoryBadge(blog.category)}`}
+                      >
+                        {blog.category}
+                      </span>
+                      {blog.readTime ? (
+                        <span className="text-xs text-gray-400">{blog.readTime} min read</span>
+                      ) : null}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openModal(blog)}
-                        className="p-2 hover:bg-blue-500/20 rounded-lg transition-all text-blue-400"
-                      >
-                        <PencilSquareIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(blog._id)}
-                        className="p-2 hover:bg-red-500/20 rounded-lg transition-all text-red-400"
-                      >
-                        <TrashIcon className="w-5 h-5" />
-                      </button>
+                    <h4 className="line-clamp-2 text-lg font-semibold leading-snug text-white">
+                      {blog.title}
+                    </h4>
+
+                    <p className="line-clamp-3 text-sm leading-relaxed text-gray-300">
+                      {blog.excerpt || blog.content}
+                    </p>
+
+                    <div className="text-xs text-gray-500">
+                      By {typeof blog.author === "string" ? blog.author : blog.author?.name || "Admin"}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                      <span className="text-xs text-gray-500">
+                        {new Date(blog.createdAt).toLocaleDateString()}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openModal(blog)}
+                          className="rounded-lg p-2 text-blue-400 transition-all hover:bg-blue-500/20"
+                          title="Edit post"
+                        >
+                          <PencilSquareIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(blog._id)}
+                          className="rounded-lg p-2 text-red-400 transition-all hover:bg-red-500/20"
+                          title="Delete post"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-400">
+                Showing {pageStart} to {pageEnd} of {totalCards} posts
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-gray-200 transition-all hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {paginationItems.map((item) =>
+                    typeof item === "string" ? (
+                      <span
+                        key={item}
+                        className="px-2 py-1 text-sm text-gray-500"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        onClick={() => goToPage(item)}
+                        aria-current={item === currentPage ? "page" : undefined}
+                        className={`min-w-9 rounded-lg px-2.5 py-1.5 text-sm transition-all ${
+                          item === currentPage
+                            ? "border border-red-400/60 bg-red-500/20 text-red-200"
+                            : "border border-white/10 text-gray-200 hover:border-white/30 hover:bg-white/10"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ),
+                  )}
                 </div>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalCardPages}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-sm text-gray-200 transition-all hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
               </div>
             </div>
-          ))
+          </>
         )}
       </div>
 

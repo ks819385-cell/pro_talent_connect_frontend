@@ -47,9 +47,13 @@ const Login = () => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    const normalizedEmail = formData.email.trim().toLowerCase();
 
     try {
-      const response = await api.login(formData);
+      const response = await api.login({
+        email: normalizedEmail,
+        password: formData.password,
+      });
 
       // Validate response data
       if (!response.data) {
@@ -57,6 +61,7 @@ const Login = () => {
       }
 
       localStorage.setItem("adminSession", "1");
+      localStorage.removeItem("pendingActivationEmail");
 
       // Store admin data (excluding token)
       const { token, ...adminData } = response.data;
@@ -65,6 +70,16 @@ const Login = () => {
       // Redirect to admin dashboard
       navigate("/admin");
     } catch (err) {
+      if (
+        err.response?.data?.code === "ACTIVATION_REQUIRED" ||
+        err.response?.data?.activationRequired
+      ) {
+        const pendingEmail = err.response?.data?.email || normalizedEmail;
+        localStorage.setItem("pendingActivationEmail", pendingEmail);
+        navigate("/admin-activate", { state: { email: pendingEmail } });
+        return;
+      }
+
       // Handle validation errors
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
         const errorMessages = err.response.data.errors

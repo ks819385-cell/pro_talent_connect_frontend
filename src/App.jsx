@@ -19,6 +19,7 @@ const Services = lazy(() => import("./pages/Services"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Login = lazy(() => import("./pages/Login"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const AdminActivation = lazy(() => import("./pages/AdminActivation"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -77,6 +78,7 @@ function App() {
             <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/admin-activate" element={<AdminActivation />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Pagenotfound />} />
           </Routes>

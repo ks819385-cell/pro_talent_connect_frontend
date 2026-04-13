@@ -9,6 +9,7 @@ import {
 } from "../ui/select";
 
 const AdminManagement = () => {
+  const AUTO_REFRESH_MS = 20000;
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +22,7 @@ const AdminManagement = () => {
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [demoteConfirm, setDemoteConfirm] = useState(null);
+  const [withdrawInviteConfirm, setWithdrawInviteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -31,10 +33,17 @@ const AdminManagement = () => {
 
   const currentAdmin = JSON.parse(localStorage.getItem("adminData") || "{}");
 
-  const fetchAdmins = useCallback(async () => {
+  const fetchAdmins = useCallback(async ({ silent = false, force = false } = {}) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+
+      if (force) {
+        api.invalidateCache("/admins");
+      }
+
       const params = { page, limit: 10 };
       if (search) params.search = search;
       if (roleFilter) params.role = roleFilter;
@@ -46,12 +55,31 @@ const AdminManagement = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load admins");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [page, search, roleFilter, statusFilter]);
 
   useEffect(() => {
-    fetchAdmins();
+    fetchAdmins({ force: true });
+  }, [fetchAdmins]);
+
+  useEffect(() => {
+    const refreshAdmins = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchAdmins({ silent: true, force: true });
+    };
+
+    const intervalId = window.setInterval(refreshAdmins, AUTO_REFRESH_MS);
+    window.addEventListener("focus", refreshAdmins);
+    document.addEventListener("visibilitychange", refreshAdmins);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshAdmins);
+      document.removeEventListener("visibilitychange", refreshAdmins);
+    };
   }, [fetchAdmins]);
 
   const openCreateModal = () => {
@@ -81,16 +109,19 @@ const AdminManagement = () => {
         const updateData = { name: formData.name, email: formData.email, role: formData.role, is_active: formData.is_active };
         await api.updateAdmin(editingAdmin._id, updateData);
       } else {
-        if (!formData.name || !formData.email || !formData.password) {
-          setError("Name, email, and password are required");
+        if (!formData.email) {
+          setError("Email is required");
           setSaving(false);
           return;
         }
-        await api.createAdmin(formData);
+        await api.createAdmin({
+          email: formData.email.trim().toLowerCase(),
+          role: formData.role,
+        });
       }
 
       setShowModal(false);
-      fetchAdmins();
+      fetchAdmins({ force: true });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save admin");
     } finally {
@@ -103,7 +134,7 @@ const AdminManagement = () => {
       setError(null);
       await api.demoteAdmin(id);
       setDemoteConfirm(null);
-      fetchAdmins();
+      fetchAdmins({ force: true });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to demote admin");
       setDemoteConfirm(null);
@@ -115,10 +146,22 @@ const AdminManagement = () => {
       setError(null);
       await api.deleteAdmin(id);
       setDeleteConfirm(null);
-      fetchAdmins();
+      fetchAdmins({ force: true });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete admin");
       setDeleteConfirm(null);
+    }
+  };
+
+  const handleWithdrawInvite = async (id) => {
+    try {
+      setError(null);
+      await api.withdrawInvite(id);
+      setWithdrawInviteConfirm(null);
+      fetchAdmins({ force: true });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to withdraw invite");
+      setWithdrawInviteConfirm(null);
     }
   };
 
@@ -127,9 +170,17 @@ const AdminManagement = () => {
     return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
   };
 
-  const statusBadge = (active) => {
-    if (active) return "bg-green-500/20 text-green-400";
+  const statusBadge = (admin) => {
+    const isPendingInvite = admin.activation_required || admin.is_password_set === false;
+    if (isPendingInvite) return "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+    if (admin.is_active) return "bg-green-500/20 text-green-400";
     return "bg-red-500/20 text-red-400";
+  };
+
+  const statusLabel = (admin) => {
+    const isPendingInvite = admin.activation_required || admin.is_password_set === false;
+    if (isPendingInvite) return "Invite Pending";
+    return admin.is_active ? "Active" : "Inactive";
   };
 
   return (
@@ -197,54 +248,71 @@ const AdminManagement = () => {
         <div className="text-center py-12 text-gray-500">No admins found.</div>
       ) : (
         <div className="space-y-3">
-          {admins.map((admin) => (
-            <div key={admin._id} className="bg-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-white/[0.07] transition-all">
+          {admins.map((admin) => {
+            const isPendingInvite = admin.activation_required || admin.is_password_set === false;
+
+            return (
+              <div key={admin._id} className="bg-white/5 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-white/[0.07] transition-all">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <h4 className="font-semibold truncate">{admin.name}</h4>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${roleBadge(admin.role)}`}>
                     {admin.role}
                   </span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusBadge(admin.is_active)}`}>
-                    {admin.is_active ? "Active" : "Inactive"}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusBadge(admin)}`}>
+                    {statusLabel(admin)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-400 truncate">{admin.email}</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Created: {new Date(admin.createdAt).toLocaleDateString()} 
-                  {admin.last_login && ` • Last login: ${new Date(admin.last_login).toLocaleDateString()}`}
+                  {isPendingInvite
+                    ? `Invited: ${new Date(admin.invited_at || admin.createdAt).toLocaleDateString()}`
+                    : `Created: ${new Date(admin.createdAt).toLocaleDateString()}`}
+                  {!isPendingInvite && admin.last_login && ` • Last login: ${new Date(admin.last_login).toLocaleDateString()}`}
                 </p>
               </div>
 
               {admin._id !== currentAdmin?._id && (
                 <div className="flex items-center flex-wrap gap-2">
-                  <button
-                    onClick={() => openEditModal(admin)}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm transition-all border border-white/10"
-                  >
-                    Edit
-                  </button>
-                  {admin.is_active && (
+                  {isPendingInvite ? (
                     <button
-                      onClick={() => setDemoteConfirm(admin)}
-                      className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-lg text-sm transition-all"
+                      onClick={() => setWithdrawInviteConfirm(admin)}
+                      className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg text-sm transition-all border border-amber-500/20"
                     >
-                      Demote
+                      Withdraw Invite
                     </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => openEditModal(admin)}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm transition-all border border-white/10"
+                      >
+                        Edit
+                      </button>
+                      {admin.is_active && (
+                        <button
+                          onClick={() => setDemoteConfirm(admin)}
+                          className="px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-lg text-sm transition-all"
+                        >
+                          Demote
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDeleteConfirm(admin)}
+                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm transition-all"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={() => setDeleteConfirm(admin)}
-                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm transition-all"
-                  >
-                    Delete
-                  </button>
                 </div>
               )}
               {admin._id === currentAdmin?._id && (
                 <span className="text-xs text-gray-500 italic">You</span>
               )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -275,18 +343,20 @@ const AdminManagement = () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
           <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-4">{editingAdmin ? "Edit Admin" : "Create Admin"}</h3>
+            <h3 className="text-lg font-bold mb-4">{editingAdmin ? "Edit Admin" : "Invite Admin"}</h3>
 
             <div className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-400 mb-1 block">Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50 text-sm"
-                />
-              </div>
+              {editingAdmin && (
+                <div>
+                  <label className="text-sm text-gray-400 mb-1 block">Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50 text-sm"
+                  />
+                </div>
+              )}
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Email *</label>
                 <input
@@ -297,16 +367,9 @@ const AdminManagement = () => {
                 />
               </div>
               {!editingAdmin && (
-                <div>
-                  <label className="text-sm text-gray-400 mb-1 block">Password *</label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50 text-sm"
-                    placeholder="Min 6 characters"
-                  />
-                </div>
+                <p className="text-xs text-gray-400 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+                  An activation OTP will be sent to this email. The invite stays valid for 72 hours.
+                </p>
               )}
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Role</label>
@@ -351,7 +414,7 @@ const AdminManagement = () => {
                 disabled={saving}
                 className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-medium transition-all text-sm disabled:opacity-50"
               >
-                {saving ? "Saving..." : editingAdmin ? "Update" : "Create"}
+                {saving ? "Saving..." : editingAdmin ? "Update" : "Send Invite"}
               </button>
             </div>
           </div>
@@ -406,6 +469,33 @@ const AdminManagement = () => {
                 className="flex-1 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg font-medium text-sm transition-all"
               >
                 Demote
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Invite Confirmation Modal */}
+      {withdrawInviteConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setWithdrawInviteConfirm(null)}>
+          <div className="bg-gray-900 border border-amber-500/30 rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-amber-300 mb-3">Withdraw Invite</h3>
+            <p className="text-gray-300 text-sm mb-1">
+              Withdraw invite for <strong>{withdrawInviteConfirm.email}</strong>?
+            </p>
+            <p className="text-gray-500 text-xs mb-4">The pending invite and OTP will be removed.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setWithdrawInviteConfirm(null)}
+                className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg font-medium text-sm border border-white/10 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleWithdrawInvite(withdrawInviteConfirm._id)}
+                className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black rounded-lg font-medium text-sm transition-all"
+              >
+                Withdraw
               </button>
             </div>
           </div>

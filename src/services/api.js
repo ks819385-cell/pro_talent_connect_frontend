@@ -208,6 +208,8 @@ export const api = {
   changeAdminRole: (id, role) => apiClient.put(`/auth/admin/${id}/role`, { role }),
   refreshToken: () => apiClient.post('/auth/refresh'),
   registerAdmin: (data) => apiClient.post('/auth/register', data),
+  resendActivationOtp: (email) => apiClient.post('/auth/resend-activation-otp', { email }),
+  activateAdmin: (data) => apiClient.post('/auth/activate-admin', data),
 
   // ─── OTP ───
   sendPlayerOtp: (email) => apiClient.post('/otp/send-player-otp', { email }),
@@ -272,6 +274,7 @@ export const api = {
   getAdmin: (id) => cachedGet(`/admins/${id}`, {}, 30000),
   createAdmin: (data) => mutate('post', '/admins', data, ['/admins']),
   updateAdmin: (id, data) => mutate('put', `/admins/${id}`, data, ['/admins']),
+  withdrawInvite: (id) => { apiCache.invalidate('/admins'); return apiClient.patch(`/admins/${id}/withdraw-invite`); },
   demoteAdmin: (id) => { apiCache.invalidate('/admins'); return apiClient.patch(`/admins/${id}/demote`); },
   deleteAdmin: (id) => { apiCache.invalidate('/admins'); return apiClient.delete(`/admins/${id}`); },
 

@@ -964,7 +964,7 @@ const OverviewPane = ({ stats, enquiries, profileRequests, setActiveTab }) => (
         },
         {
           label: "Published Blogs",
-          value: stats?.totalBlogs || 0,
+          value: stats?.publishedBlogs ?? stats?.totalBlogs ?? 0,
           color: "text-green-400",
         },
       ].map(({ label, value, color }) => (
@@ -1433,6 +1433,8 @@ const ContentPanel = ({ activeTab }) => (
   </div>
 );
 
+const DASHBOARD_AUTO_REFRESH_MS = 20000;
+
 /* === MAIN COMPONENT === */
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -1461,7 +1463,18 @@ const AdminDashboard = () => {
       return;
     }
     try {
-      setAdminData(JSON.parse(admin));
+      const parsedAdmin = JSON.parse(admin);
+      if (parsedAdmin?.activation_required || parsedAdmin?.is_password_set === false) {
+        if (parsedAdmin?.email) {
+          localStorage.setItem("pendingActivationEmail", parsedAdmin.email);
+        }
+        navigate("/admin-activate", {
+          state: { email: parsedAdmin?.email || "" },
+        });
+        return;
+      }
+
+      setAdminData(parsedAdmin);
     } catch {
       localStorage.removeItem("adminSession");
       localStorage.removeItem("adminData");
@@ -1475,7 +1488,17 @@ const AdminDashboard = () => {
       if (e.key === "adminSession" && !e.newValue) navigate("/login");
       if (e.key === "adminData" && e.newValue && e.newValue !== "undefined") {
         try {
-          setAdminData(JSON.parse(e.newValue));
+          const parsedAdmin = JSON.parse(e.newValue);
+          if (parsedAdmin?.activation_required || parsedAdmin?.is_password_set === false) {
+            if (parsedAdmin?.email) {
+              localStorage.setItem("pendingActivationEmail", parsedAdmin.email);
+            }
+            navigate("/admin-activate", {
+              state: { email: parsedAdmin?.email || "" },
+            });
+            return;
+          }
+          setAdminData(parsedAdmin);
         } catch {
           /* noop */
         }
@@ -1485,16 +1508,27 @@ const AdminDashboard = () => {
     return () => window.removeEventListener("storage", handler);
   }, [navigate]);
 
-  const fetchDashboardData = useCallback(async (signal) => {
+  const fetchDashboardData = useCallback(async ({ signal, silent = false, force = false } = {}) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+
+      if (force) {
+        api.invalidateCache("/dashboard");
+        api.invalidateCache("/contact");
+      }
+
+      const requestOptions = signal ? { signal } : {};
+
       const [statsRes, enquiriesRes, profilesRes] = await Promise.all([
-        api.getDashboardStats({ signal }),
-        api.getEnquiries({ signal }),
-        api.getProfileRequests({ signal }),
+        api.getDashboardStats(requestOptions),
+        api.getEnquiries(requestOptions),
+        api.getProfileRequests(requestOptions),
       ]);
-      if (!signal.aborted) {
+
+      if (!signal || !signal.aborted) {
         setStats(statsRes.data || {});
         const enqData = enquiriesRes.data?.enquiries || enquiriesRes.data;
         setEnquiries(Array.isArray(enqData) ? enqData : []);
@@ -1502,19 +1536,38 @@ const AdminDashboard = () => {
         setProfileRequests(Array.isArray(profData) ? profData : []);
       }
     } catch (err) {
-      if (!signal.aborted) {
+      if (!signal || !signal.aborted) {
         console.error(err);
         setError("Failed to load dashboard data");
       }
     } finally {
-      if (!signal.aborted) setLoading(false);
+      if ((!signal || !signal.aborted) && !silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     const ctrl = new AbortController();
-    if (adminData) fetchDashboardData(ctrl.signal);
+    if (adminData) fetchDashboardData({ signal: ctrl.signal, force: true });
     return () => ctrl.abort();
+  }, [adminData, fetchDashboardData]);
+
+  useEffect(() => {
+    if (!adminData) return;
+
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchDashboardData({ silent: true, force: true });
+    };
+
+    const intervalId = window.setInterval(refreshVisibleData, DASHBOARD_AUTO_REFRESH_MS);
+    window.addEventListener("focus", refreshVisibleData);
+    document.addEventListener("visibilitychange", refreshVisibleData);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshVisibleData);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+    };
   }, [adminData, fetchDashboardData]);
 
   const handleLogout = async () => {
