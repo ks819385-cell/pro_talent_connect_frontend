@@ -46,12 +46,15 @@ function App() {
     !location.pathname.includes("admin");
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ overflowX: "clip" }}>
       <ScrollToTop />
       {showLayout && <NavBar />}
       <div
         className="md:pb-0"
-        style={{ paddingBottom: showLayout ? "calc(72px + env(safe-area-inset-bottom))" : 0 }}
+        style={{
+          paddingBottom: showLayout ? "calc(72px + env(safe-area-inset-bottom))" : 0,
+          overflowX: "clip",
+        }}
       >
         <Suspense fallback={<PageLoader />}>
           <Routes>

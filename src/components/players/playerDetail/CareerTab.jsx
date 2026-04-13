@@ -13,7 +13,7 @@ const CareerTab = ({ player }) => {
         <div className="px-5 py-4 border-b border-white/[0.07]">
           <h2 className={T.sectionTitle}>Club History</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Career timeline — most recent first
+            Career timeline - most recent first
           </p>
         </div>
         {!hasClubs ? (
@@ -62,7 +62,7 @@ const CareerTab = ({ player }) => {
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-sm text-gray-400 text-right tabular-nums">
-                      {club.duration || "—"}
+                      {club.duration || "N/A"}
                     </td>
                   </tr>
                 ))}

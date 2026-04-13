@@ -13,7 +13,7 @@ const TabBar = ({ active, setActive }) => (
         key={t.id}
         onClick={() => setActive(t.id)}
         className={`
-          px-4 sm:px-5 py-3.5 text-[13px] font-medium whitespace-nowrap border-b-2 -mb-px
+          px-3.5 sm:px-5 py-3 text-[12px] sm:text-[13px] font-medium whitespace-nowrap border-b-2 -mb-px
           transition-colors duration-150 focus:outline-none
           ${
             active === t.id

@@ -1,4 +1,16 @@
 import { T, card } from "./tokens";
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Radar } from "react-chartjs-2";
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 /** Status badge */
 export const Badge = ({ label, variant = "gray" }) => {
@@ -12,7 +24,7 @@ export const Badge = ({ label, variant = "gray" }) => {
   };
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${v[variant] || v.gray}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border shrink-0 max-w-[9.5rem] truncate ${v[variant] || v.gray}`}
     >
       {label}
     </span>
@@ -26,7 +38,7 @@ export const StatItem = ({ label, value }) => (
     <p
       className={`text-sm font-semibold leading-snug ${value ? "text-white" : "text-gray-600 italic"}`}
     >
-      {value || "—"}
+      {value || "N/A"}
     </p>
   </div>
 );
@@ -72,83 +84,67 @@ export const Section = ({ title, sub, children, className = "" }) => (
   </div>
 );
 
-/* ─── SVG Radar Chart ─────────────────────────────────────── */
+/* ─── Chart.js Radar Chart ────────────────────────────────── */
 export const RadarChart = ({ axes }) => {
-  const SIZE = 200;
-  const CX = SIZE / 2;
-  const CY = SIZE / 2;
-  const R = 75;
-  const LEVELS = 4;
-  const n = axes.length;
+  const labels = axes.map((axis) => axis.label);
+  const values = axes.map((axis) => Math.max(0, Math.min(100, axis.value ?? 0)));
 
-  const angle = (i) => (Math.PI * 2 * i) / n - Math.PI / 2;
-  const point = (r, i) => ({
-    x: CX + r * Math.cos(angle(i)),
-    y: CY + r * Math.sin(angle(i)),
-  });
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: "Skill",
+        data: values,
+        borderColor: "#C4161C",
+        backgroundColor: "rgba(196, 22, 28, 0.18)",
+        borderWidth: 2,
+        pointBackgroundColor: "#C4161C",
+        pointBorderColor: "#C4161C",
+        pointRadius: 2.5,
+        pointHoverRadius: 3,
+      },
+    ],
+  };
 
-  const gridPolygons = Array.from({ length: LEVELS }, (_, l) => {
-    const r = (R * (l + 1)) / LEVELS;
-    return Array.from({ length: n }, (_, i) => {
-      const p = point(r, i);
-      return `${p.x},${p.y}`;
-    }).join(" ");
-  });
-
-  const spokes = Array.from({ length: n }, (_, i) => {
-    const outer = point(R, i);
-    return `M${CX},${CY} L${outer.x},${outer.y}`;
-  });
-
-  const dataPath = axes
-    .map((ax, i) => {
-      const r = R * (ax.value / 100);
-      const p = point(r, i);
-      return `${p.x},${p.y}`;
-    })
-    .join(" ");
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `${ctx.formattedValue}%`,
+        },
+      },
+    },
+    scales: {
+      r: {
+        min: 0,
+        max: 100,
+        ticks: {
+          display: false,
+          stepSize: 25,
+        },
+        angleLines: {
+          color: "rgba(255,255,255,0.08)",
+        },
+        grid: {
+          color: "rgba(255,255,255,0.08)",
+        },
+        pointLabels: {
+          color: "rgba(255,255,255,0.55)",
+          font: {
+            size: 11,
+            family: "system-ui",
+          },
+        },
+      },
+    },
+  };
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-xs mx-auto">
-      {gridPolygons.map((pts, l) => (
-        <polygon
-          key={l}
-          points={pts}
-          fill="none"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth={1}
-        />
-      ))}
-      {spokes.map((d, i) => (
-        <path key={i} d={d} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-      ))}
-      <polygon
-        points={dataPath}
-        fill="rgba(196,22,28,0.18)"
-        stroke="#C4161C"
-        strokeWidth={1.5}
-      />
-      {axes.map((ax, i) => {
-        const r = R * (ax.value / 100);
-        const p = point(r, i);
-        return <circle key={i} cx={p.x} cy={p.y} r={3} fill="#C4161C" />;
-      })}
-      {axes.map((ax, i) => {
-        const p = point(R + 18, i);
-        return (
-          <text
-            key={i}
-            x={p.x}
-            y={p.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={8}
-            fill="rgba(255,255,255,0.45)"
-          >
-            {ax.label}
-          </text>
-        );
-      })}
-    </svg>
+    <div className="w-full max-w-xs mx-auto h-[250px]">
+      <Radar data={data} options={options} />
+    </div>
   );
 };

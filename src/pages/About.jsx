@@ -133,16 +133,16 @@ const About = () => {
   return (
     <div className="min-h-screen bg-linear-to-b from-gray-900 via-black to-gray-950 text-white relative overflow-x-hidden">
       {/* Fixed ambient background — subtle, not neon */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div
-          className="absolute top-0 right-0 w-125 h-125 rounded-full opacity-10"
+          className="absolute top-0 right-0 w-80 h-80 md:w-125 md:h-125 rounded-full opacity-10"
           style={{
             background:
               "radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 70%)",
           }}
         />
         <div
-          className="absolute bottom-0 left-0 w-100 h-100 rounded-full opacity-10"
+          className="absolute bottom-0 left-0 w-72 h-72 md:w-100 md:h-100 rounded-full opacity-10"
           style={{
             background:
               "radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%)",

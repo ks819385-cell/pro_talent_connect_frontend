@@ -5,12 +5,18 @@
    ============================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
+  min-width: 0;
 }
 
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  background: #0a0a0f;
 }
 
 body {
@@ -18,8 +24,19 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  width: 100%;
+  overflow-x: clip;
   max-width: 100%;
+  overscroll-behavior-y: none;
+  background: #0a0a0f;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  isolation: isolate;
+  background: #0a0a0f;
 }
 
 h1, h2, h3, h4, h5, h6 {

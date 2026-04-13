@@ -1,8 +1,8 @@
 /* ═══ Design Tokens ════════════════════════════════════════ */
 export const T = {
   labelText:
-    "text-[10px] font-semibold uppercase tracking-[0.09em] text-gray-500",
-  sectionTitle: "text-sm font-semibold text-white",
+    "text-[11px] sm:text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500",
+  sectionTitle: "text-[15px] sm:text-sm font-semibold text-white",
 };
 
 export const card = "bg-[#111115] border border-white/[0.07] rounded-xl";

@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import {
   MagnifyingGlassIcon,
   PhoneIcon,
@@ -1225,6 +1226,8 @@ const PlayerCardList = ({ player, onViewProfile }) => {
   );
 };
 const Players = () => {
+  const location = useLocation();
+  const featuredRouteHandledRef = useRef(false);
   const [players, setPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1343,11 +1346,30 @@ const Players = () => {
 
   const set = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }));
 
-  const handleViewProfile = (player) => {
+  const handleViewProfile = useCallback((player) => {
     setSelectedPlayer(player);
     setShowPlayerModal(true);
     window.scrollTo({ top: 0 });
-  };
+  }, []);
+
+  useEffect(() => {
+    const routeState = location.state;
+    if (!routeState || featuredRouteHandledRef.current) return;
+
+    const requestedId = routeState.openPlayerId;
+    const requestedPlayer = routeState.openPlayer;
+
+    if (!requestedId && !requestedPlayer) return;
+
+    const resolvedPlayer = requestedId
+      ? players.find((p) => p._id === requestedId) || requestedPlayer
+      : requestedPlayer;
+
+    if (!resolvedPlayer) return;
+
+    featuredRouteHandledRef.current = true;
+    handleViewProfile(resolvedPlayer);
+  }, [location.state, players, handleViewProfile]);
 
   const activeChips = [
     filters.position && {

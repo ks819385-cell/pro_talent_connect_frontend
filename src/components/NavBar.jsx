@@ -149,6 +149,56 @@ const IconContact = ({ active }) => (
   </svg>
 );
 
+const IconAbout = ({ active }) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      fill={active ? "currentColor" : "none"}
+      strokeWidth={active ? 0 : 1.8}
+    />
+    <path
+      d="M12 10.3v5"
+      stroke={active ? "#0f0f12" : "currentColor"}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+    />
+    <circle cx="12" cy="7.4" r="1" fill={active ? "#0f0f12" : "currentColor"} />
+  </svg>
+);
+
+const IconLegal = ({ active }) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"
+      fill={active ? "currentColor" : "none"}
+      strokeWidth={active ? 0 : 1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M14 3v5h5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 13h6M9 17h6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const IconDashboard = ({ active }) => (
   <svg
     width="22"
@@ -297,6 +347,12 @@ const NavBar = () => {
   /* secondary links shown in the More sheet */
   const moreLinks = useMemo(() => [
     {
+      name: "About",
+      path: "/about",
+      Icon: IconAbout,
+      desc: "Our story and mission",
+    },
+    {
       name: "Services",
       path: "/services",
       Icon: IconServices,
@@ -307,6 +363,24 @@ const NavBar = () => {
       path: "/contact",
       Icon: IconContact,
       desc: "Get in touch",
+    },
+    {
+      name: "Privacy Policy",
+      path: "/privacy-policy",
+      Icon: IconLegal,
+      desc: "How we handle your data",
+    },
+    {
+      name: "Terms of Service",
+      path: "/terms-of-service",
+      Icon: IconLegal,
+      desc: "Platform usage terms",
+    },
+    {
+      name: "Cookie Policy",
+      path: "/cookie-policy",
+      Icon: IconLegal,
+      desc: "Cookie and tracking details",
     },
   ], []);
 
@@ -432,7 +506,7 @@ const NavBar = () => {
                       color: isActive ? "#e63a3a" : "rgba(255,255,255,0.55)",
                     }}
                   >
-                    <Icon active={isActive} />
+                    {Icon({ active: isActive })}
                   </span>
                 </span>
                 {/* Label */}
@@ -560,7 +634,7 @@ const NavBar = () => {
                           color: active ? "#e63a3a" : "rgba(255,255,255,0.75)",
                         }}
                       >
-                        <Icon active={active} />
+                        {Icon({ active })}
                       </span>
 
                       {/* Text */}
