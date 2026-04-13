@@ -28,11 +28,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*
- * DROPDOWN – WCAG AA ≥ 4.5:1
- * #e2e8f0 on #111827 ≈ 13.5:1 (AAA)
+ * DROPDOWN - WCAG AA >= 4.5:1
+ * #e2e8f0 on #111827 ~ 13.5:1 (AAA)
  */
 select {
-  background-color: rgba(255, 255, 255, 0.05);
   color: #e2e8f0;
   cursor: pointer;
 }
@@ -46,6 +45,51 @@ select option {
 select option:hover,
 select option:focus  { background-color: #1f2937; color: #f1f5f9; }
 select option:checked { background-color: #dc2626; color: #ffffff; }
+
+@layer utilities {
+  .ptc-select {
+    appearance: none;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+    border-radius: 0.75rem;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+    background-image:
+      linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.6) 50%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.6) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2.25rem;
+  }
+  .ptc-select:focus {
+    outline: none;
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  }
+  .ptc-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .ptc-select-compact {
+    padding-right: 1.75rem;
+    background-position: calc(100% - 11px) 50%, calc(100% - 7px) 50%;
+  }
+  .ptc-select-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .ptc-dropdown-panel {
+    background-color: rgba(13, 17, 26, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+  }
+  .ptc-dropdown-item {
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+}
 
 /* ============================================================
    CUSTOM SCROLLBAR

@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../../services/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const fmt = (d) => d.toISOString().slice(0, 10);
 const today = () => fmt(new Date());
@@ -112,32 +119,46 @@ const AuditLogViewer = () => {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <select
-          value={actionFilter}
-          onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50"
+        <Select
+          value={actionFilter || "all"}
+          onValueChange={(value) => {
+            setActionFilter(value === "all" ? "" : value);
+            setPage(1);
+          }}
         >
-          <option value="" className="bg-gray-900">All Actions</option>
-          <option value="CREATE" className="bg-gray-900">Create</option>
-          <option value="UPDATE" className="bg-gray-900">Update</option>
-          <option value="DELETE" className="bg-gray-900">Delete</option>
-          <option value="LOGIN" className="bg-gray-900">Login</option>
-          <option value="LOGOUT" className="bg-gray-900">Logout</option>
-          <option value="PASSWORD_CHANGE" className="bg-gray-900">Password Change</option>
-          <option value="ROLE_CHANGE" className="bg-gray-900">Role Change</option>
-        </select>
-        <select
-          value={resourceFilter}
-          onChange={(e) => { setResourceFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50"
+          <SelectTrigger className="px-3 py-2 text-sm">
+            <SelectValue placeholder="All Actions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Actions</SelectItem>
+            <SelectItem value="CREATE">Create</SelectItem>
+            <SelectItem value="UPDATE">Update</SelectItem>
+            <SelectItem value="DELETE">Delete</SelectItem>
+            <SelectItem value="LOGIN">Login</SelectItem>
+            <SelectItem value="LOGOUT">Logout</SelectItem>
+            <SelectItem value="PASSWORD_CHANGE">Password Change</SelectItem>
+            <SelectItem value="ROLE_CHANGE">Role Change</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={resourceFilter || "all"}
+          onValueChange={(value) => {
+            setResourceFilter(value === "all" ? "" : value);
+            setPage(1);
+          }}
         >
-          <option value="" className="bg-gray-900">All Resources</option>
-          <option value="Admin" className="bg-gray-900">Admin</option>
-          <option value="Player" className="bg-gray-900">Player</option>
-          <option value="Blog" className="bg-gray-900">Blog</option>
-          <option value="About" className="bg-gray-900">About</option>
-          <option value="Auth" className="bg-gray-900">Auth</option>
-        </select>
+          <SelectTrigger className="px-3 py-2 text-sm">
+            <SelectValue placeholder="All Resources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Resources</SelectItem>
+            <SelectItem value="Admin">Admin</SelectItem>
+            <SelectItem value="Player">Player</SelectItem>
+            <SelectItem value="Blog">Blog</SelectItem>
+            <SelectItem value="About">About</SelectItem>
+            <SelectItem value="Auth">Auth</SelectItem>
+          </SelectContent>
+        </Select>
         {/* Quick date presets */}
         <div className="flex flex-wrap items-center gap-1.5">
           {DATE_PRESETS.map((p) => {

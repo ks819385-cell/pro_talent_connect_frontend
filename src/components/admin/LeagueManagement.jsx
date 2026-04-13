@@ -7,6 +7,13 @@ import {
   XMarkIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const TIERS = ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "State Tier"];
 
@@ -19,7 +26,7 @@ const TIER_STYLES = {
 };
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white";
-const selectCls = inputCls + " appearance-none";
+const selectCls = inputCls;
 
 const TierBadge = ({ tier }) => (
   <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${TIER_STYLES[tier] || "bg-gray-500/15 text-gray-400 border-gray-500/30"}`}>
@@ -164,13 +171,23 @@ export default function LeagueManagement() {
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Tier</label>
-              <select
+              <Select
                 value={addForm.tier}
-                onChange={(e) => setAddForm((p) => ({ ...p, tier: e.target.value }))}
-                className={selectCls}
+                onValueChange={(value) =>
+                  setAddForm((p) => ({ ...p, tier: value }))
+                }
               >
-                {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+                <SelectTrigger className={selectCls}>
+                  <SelectValue placeholder="Select tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIERS.map((tier) => (
+                    <SelectItem key={tier} value={tier}>
+                      {tier}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-2 mt-3 justify-end">
@@ -228,13 +245,26 @@ export default function LeagueManagement() {
                             className="flex-1 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white focus:outline-none focus:border-blue-500"
                             autoFocus
                           />
-                          <select
+                          <Select
                             value={editForm.tier}
-                            onChange={(e) => setEditForm((p) => ({ ...p, tier: e.target.value }))}
-                            className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white focus:outline-none appearance-none"
+                            onValueChange={(value) =>
+                              setEditForm((p) => ({ ...p, tier: value }))
+                            }
                           >
-                            {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-                          </select>
+                            <SelectTrigger
+                              size="sm"
+                              className="w-32 bg-white/10 border border-white/20"
+                            >
+                              <SelectValue placeholder="Tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIERS.map((tier) => (
+                                <SelectItem key={tier} value={tier}>
+                                  {tier}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <button
                             onClick={() => handleUpdate(league._id)}
                             disabled={saving}

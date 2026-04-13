@@ -168,7 +168,7 @@ const PartnerModal = ({ initial, onSave, onClose }) => {
 
           <div>
             <label className={labelCls}>Description *</label>
-            <textarea className={`${inputCls} resize-none`} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Short description of the partner…" required />
+            <textarea className={`${inputCls} resize-none`} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Short description of the partner..." required />
           </div>
 
           {/* Logo / Avatar */}
