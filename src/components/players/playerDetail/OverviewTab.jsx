@@ -94,11 +94,11 @@ const CompareModal = ({ basePlayer, onClose }) => {
     return (
       <tr className="border-b border-white/[0.05]">
         <td className="py-2.5 px-3 text-right text-sm" style={{ color: aWins ? "#34D399" : "rgba(255,255,255,0.65)" }}>
-          <span className={aWins ? "font-bold" : ""}>{a ?? "—"}</span>
+          <span className={aWins ? "font-bold" : ""}>{a ?? "N/A"}</span>
         </td>
         <td className="py-2.5 px-2 text-center text-[11px] text-gray-500 font-medium whitespace-nowrap">{label}</td>
         <td className="py-2.5 px-3 text-left text-sm" style={{ color: bWins ? "#34D399" : "rgba(255,255,255,0.65)" }}>
-          <span className={bWins ? "font-bold" : ""}>{b ?? "—"}</span>
+          <span className={bWins ? "font-bold" : ""}>{b ?? "N/A"}</span>
         </td>
       </tr>
     );
@@ -111,7 +111,6 @@ const CompareModal = ({ basePlayer, onClose }) => {
   );
 
   const PlayerHeader = ({ p }) => {
-    const g = gs(p.scoutReport?.grade);
     return (
       <div className="flex flex-col items-center gap-2 px-2">
         <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10">
@@ -119,7 +118,7 @@ const CompareModal = ({ basePlayer, onClose }) => {
         </div>
         <div className="text-center">
           <p className="text-white font-bold text-sm leading-tight max-w-[110px] truncate">{p.name}</p>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{p.playingPosition || "—"}</p>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{p.playingPosition || "N/A"}</p>
           {p.scoutReport?.grade && (
             <span
               className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
@@ -173,7 +172,6 @@ const CompareModal = ({ basePlayer, onClose }) => {
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {filtered.map((p) => {
-                  const g = gs(p.scoutReport?.grade);
                   return (
                     <button
                       key={p._id}
@@ -186,7 +184,9 @@ const CompareModal = ({ basePlayer, onClose }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-semibold truncate">{p.name}</p>
-                        <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>{p.playingPosition || "—"} · {p.age ? `${p.age}y` : ""}</p>
+                        <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          {[p.playingPosition || "N/A", p.age ? `${p.age}y` : null].filter(Boolean).join(" · ")}
+                        </p>
                       </div>
                       {p.scoutReport?.grade && (
                         <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ color: gs(p.scoutReport.grade).bar, background: `${gs(p.scoutReport.grade).bar}22` }}>{p.scoutReport.grade}</span>
@@ -200,7 +200,7 @@ const CompareModal = ({ basePlayer, onClose }) => {
         ) : (
           <div className="p-5">
             {/* Player headers */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-2 mb-5">
               <PlayerHeader p={basePlayer} />
               <div className="text-center">
                 <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: "rgba(196,22,28,0.15)", color: "#FCA5A5", border: "1px solid rgba(196,22,28,0.3)" }}>VS</span>
@@ -269,7 +269,7 @@ const CompareModal = ({ basePlayer, onClose }) => {
   );
 };
 // ── OverviewTab ────────────────────────────────────────────────────────────
-const OverviewTab = ({ player, onDownload }) => {
+const OverviewTab = ({ player, onDownload, onRegisterCompareOpener }) => {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const report = player.scoutReport;
@@ -283,6 +283,12 @@ const OverviewTab = ({ player, onDownload }) => {
     player.videoTitle || `${player.name} Highlights`;
   const playerVideoDescription =
     player.videoDescription || "Tap to watch in fullscreen modal";
+
+  useEffect(() => {
+    if (typeof onRegisterCompareOpener !== "function") return undefined;
+    onRegisterCompareOpener(() => setCompareOpen(true));
+    return () => onRegisterCompareOpener(null);
+  }, [onRegisterCompareOpener]);
 
   const skillBars = report
     ? [
@@ -311,12 +317,12 @@ const OverviewTab = ({ player, onDownload }) => {
         {/* 1. Rating Overview */}
         {report && (
           <div className={card + " p-5"}>
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
               <div>
                 <p className={T.labelText}>Overall Scout Rating</p>
                 <div className="flex items-end gap-2 mt-2">
                   <span
-                    className={`text-[56px] leading-none font-black tabular-nums ${gStyle.color}`}
+                    className={`text-[44px] sm:text-[56px] leading-none font-black tabular-nums ${gStyle.color}`}
                   >
                     {score}
                   </span>
@@ -324,9 +330,9 @@ const OverviewTab = ({ player, onDownload }) => {
                 </div>
               </div>
               <span
-                className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-bold border ${gStyle.bg} ${gStyle.color} ${gStyle.border}`}
+                className={`inline-flex self-start px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold border ${gStyle.bg} ${gStyle.color} ${gStyle.border}`}
               >
-                Grade {report.grade} — {gStyle.label}
+                Grade {report.grade} - {gStyle.label}
               </span>
             </div>
             <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden mb-1.5">
@@ -339,7 +345,7 @@ const OverviewTab = ({ player, onDownload }) => {
               {score}% of maximum score
             </p>
             {skillBars.length > 0 && (
-              <div className="mt-5 pt-5 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+              <div className="mt-5 pt-5 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {skillBars.map((s) => (
                   <RatingBar
                     key={s.label}
@@ -370,23 +376,25 @@ const OverviewTab = ({ player, onDownload }) => {
               {recentComps.map((c, i) => (
                 <div
                   key={i}
-                  className="px-4 py-3 flex items-center justify-between gap-3"
+                  className="px-4 py-3 flex items-start justify-between gap-3"
                 >
-                  <div className="min-w-0">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-100 truncate">
                       {c.name}
                     </p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
-                      {[c.type, c.year].filter(Boolean).join(" · ") || "—"}
+                      {[c.type, c.year].filter(Boolean).join(" · ") || "N/A"}
                     </p>
                   </div>
-                  {c.result === "Champion" ? (
-                    <Badge label="Champion" variant="gold" />
-                  ) : c.result === "Runner-up" ? (
-                    <Badge label="Runner-up" variant="yellow" />
-                  ) : (
-                    <Badge label={c.result || "Participant"} variant="gray" />
-                  )}
+                  <div className="shrink-0 max-w-[42%]">
+                    {c.result === "Champion" ? (
+                      <Badge label="Champion" variant="gold" />
+                    ) : c.result === "Runner-up" ? (
+                      <Badge label="Runner-up" variant="yellow" />
+                    ) : (
+                      <Badge label={c.result || "Participant"} variant="gray" />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -410,9 +418,9 @@ const OverviewTab = ({ player, onDownload }) => {
                     >
                       <td className={tDW}>{c.name}</td>
                       <td className={tD + " hidden sm:table-cell"}>
-                        {c.type || "—"}
+                        {c.type || "N/A"}
                       </td>
-                      <td className={tD + " text-center"}>{c.year || "—"}</td>
+                      <td className={tD + " text-center"}>{c.year || "N/A"}</td>
                       <td className="px-4 py-3 text-right">
                         {c.result === "Champion" ? (
                           <Badge label="Champion" variant="gold" />
@@ -477,20 +485,20 @@ const OverviewTab = ({ player, onDownload }) => {
               </p>
             </div>
             {/* Mobile: metric stat cards grid */}
-            <div className="sm:hidden p-4 grid grid-cols-2 gap-3">
+            <div className="sm:hidden p-3.5 grid grid-cols-2 gap-2.5">
               {[
                 { label: "Age Prospect",  score: report.ageScore,            max: 5,    missing: !player.age },
                 { label: "Physical",      score: report.physicalScore,        max: 5,    missing: !player.height || !player.weight },
                 { label: "Transfer Mkt",  score: report.transferMarketScore,  max: 7.5,  missing: !player.transferMarketLink },
                 { label: "Competition",   score: report.competitionScore,     max: 50,   missing: !player.competitions?.length },
-                { label: "Championship",  score: report.championshipBonus,    max: "—",  missing: !player.competitions?.length },
+                { label: "Championship",  score: report.championshipBonus,    max: null, missing: !player.competitions?.length },
                 { label: "State League",  score: report.stateLeagueBonus,     max: 2,    missing: !player.stateLeague },
                 { label: "Club Rep.",     score: report.clubReputationBonus,  max: 3,    missing: !player.clubsPlayed?.length },
                 { label: "Speed (30m)",   score: report.speedScore,           max: 2,    missing: !player.sprint30m },
                 { label: "Mentality",     score: report.mentalityAssessment,  max: 2,    missing: player.mentalityScore == null },
               ].map((b, i) => {
                 const pct =
-                  b.max !== "—" && !b.missing
+                  b.max != null && !b.missing
                     ? Math.min(Math.round((b.score / b.max) * 100), 100)
                     : null;
                 const barColor =
@@ -504,13 +512,13 @@ const OverviewTab = ({ player, onDownload }) => {
                 return (
                   <div
                     key={i}
-                    className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06]"
+                    className="bg-white/[0.03] rounded-xl p-3 border border-white/[0.06] min-h-[102px]"
                   >
-                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide leading-snug">
+                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide leading-tight">
                       {b.label}
                     </p>
                     {b.missing ? (
-                      <p className="text-xs text-gray-700 mt-2 italic">—</p>
+                      <p className="text-xs text-gray-700 mt-2 italic">N/A</p>
                     ) : (
                       <>
                         <div className="flex items-end justify-between mt-2 mb-1.5">
@@ -594,7 +602,7 @@ const OverviewTab = ({ player, onDownload }) => {
                     {
                       label: "Championship Bonus",
                       score: report.championshipBonus,
-                      max: "—",
+                      max: null,
                       missing: !player.competitions?.length,
                     },
                     {
@@ -623,7 +631,7 @@ const OverviewTab = ({ player, onDownload }) => {
                     },
                   ].map((b, i) => {
                     const pct =
-                      b.max !== "—" && !b.missing
+                      b.max != null && !b.missing
                         ? Math.min(Math.round((b.score / b.max) * 100), 100)
                         : null;
                     const barColor =
@@ -658,16 +666,16 @@ const OverviewTab = ({ player, onDownload }) => {
                           )}
                         </td>
                         <td className={tDW + " text-right"}>
-                          {b.missing ? "—" : b.score}
+                          {b.missing ? "N/A" : b.score}
                         </td>
                         <td className={tD + " text-right text-gray-600"}>
-                          {b.max}
+                          {b.max ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-semibold">
                           {pct != null ? (
                             <span style={{ color: barColor }}>{pct}%</span>
                           ) : (
-                            <span className="text-gray-700">—</span>
+                            <span className="text-gray-700">N/A</span>
                           )}
                         </td>
                       </tr>
@@ -810,7 +818,7 @@ const OverviewTab = ({ player, onDownload }) => {
           </div>
         )}
 
-        {/* Quick Actions — desktop only; mobile uses sticky bottom bar */}
+        {/* Quick Actions - desktop only; mobile uses sticky bottom bar */}
         <div className={`${card} p-4 space-y-2 hidden sm:block`}>
           <p className={T.labelText + " mb-3"}>Quick Actions</p>
           <button
@@ -829,7 +837,7 @@ const OverviewTab = ({ player, onDownload }) => {
           </button>
           {player.email && (
             <a
-              href={`mailto:${player.email}?subject=Contact Request — ${player.name}`}
+              href={`mailto:${player.email}?subject=Contact Request - ${player.name}`}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-gray-800 hover:bg-gray-700 border border-white/[0.08] text-gray-300 hover:text-white text-xs font-semibold transition-colors"
             >
               <EnvelopeIcon className="w-4 h-4" />

@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 /* --- Grade color map --- */
@@ -98,10 +98,25 @@ const ScoreBar = ({ score, grade }) => {
 /* --- Featured players --- */
 const FeaturedPlayers = () => {
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
+
+  const openPlayerProfile = useCallback((player) => {
+    if (!player) {
+      navigate("/players");
+      return;
+    }
+    navigate("/players", {
+      state: {
+        openPlayerId: player._id,
+        openPlayer: player,
+        source: "featured-players",
+      },
+    });
+  }, [navigate]);
 
   useEffect(() => {
     (async () => {
@@ -306,18 +321,21 @@ const FeaturedPlayers = () => {
                 )}
 
                 {/* CTA - Fitts's Law: full-width, 48px tall = easy thumb tap */}
-                <Link
-                  to="/players"
+                <button
+                  type="button"
+                  onClick={() => openPlayerProfile(player)}
                   className="mt-3.5 flex items-center justify-center text-white text-[14px] font-bold no-underline rounded-xl transition-opacity duration-200 active:opacity-80"
                   style={{
                     height: "48px",
                     background: "linear-gradient(135deg,#C4161C 0%,#E8242B 100%)",
                     boxShadow: "0 3px 14px rgba(196,22,28,0.4)",
                     letterSpacing: "0.01em",
+                    border: "none",
+                    cursor: "pointer",
                   }}
                 >
                   View Profile
-                </Link>
+                </button>
               </div>
             </article>
           );

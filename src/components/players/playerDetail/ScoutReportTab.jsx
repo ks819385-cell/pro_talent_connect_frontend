@@ -46,7 +46,7 @@ const ScoutReportTab = ({ player }) => {
     {
       label: "Championship Bonus",
       score: report.championshipBonus,
-      max: "—",
+      max: null,
       missing: !player.competitions?.length,
     },
     {
@@ -87,7 +87,7 @@ const ScoutReportTab = ({ player }) => {
             <p className={T.labelText}>Overall Score</p>
             <div className="flex items-end gap-2 mt-2">
               <span
-                className={`text-[56px] leading-none font-black tabular-nums ${gStyle.color}`}
+                className={`text-[44px] sm:text-[56px] leading-none font-black tabular-nums ${gStyle.color}`}
               >
                 {report.totalScore}
               </span>
@@ -100,7 +100,7 @@ const ScoutReportTab = ({ player }) => {
               <span
                 className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-bold border ${gStyle.bg} ${gStyle.color} ${gStyle.border}`}
               >
-                Grade {report.grade} — {gStyle.label}
+                Grade {report.grade} - {gStyle.label}
               </span>
             </div>
           </div>
@@ -152,7 +152,7 @@ const ScoutReportTab = ({ player }) => {
             <tbody className="divide-y divide-white/[0.04]">
               {breakdown.map((b, i) => {
                 const pct =
-                  b.max !== "—" && !b.missing
+                  b.max != null && !b.missing
                     ? Math.min(Math.round((b.score / b.max) * 100), 100)
                     : null;
                 const barColor =
@@ -187,16 +187,16 @@ const ScoutReportTab = ({ player }) => {
                       )}
                     </td>
                     <td className={tDW + " text-right"}>
-                      {b.missing ? "—" : b.score}
+                      {b.missing ? "N/A" : b.score}
                     </td>
                     <td className={tD + " text-right text-gray-600"}>
-                      {b.max}
+                      {b.max ?? "N/A"}
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-semibold">
                       {pct != null ? (
                         <span style={{ color: barColor }}>{pct}%</span>
                       ) : (
-                        <span className="text-gray-700">—</span>
+                        <span className="text-gray-700">N/A</span>
                       )}
                     </td>
                   </tr>
