@@ -3,12 +3,16 @@ import { Link } from "react-router-dom";
 import {
   MagnifyingGlassIcon,
   UserCircleIcon,
+  UserGroupIcon,
+  GlobeAltIcon,
   TrophyIcon,
+  AcademicCapIcon,
   ShieldCheckIcon,
   ChartBarIcon,
   LifebuoyIcon,
   UserPlusIcon,
   CheckBadgeIcon,
+  RocketLaunchIcon,
 } from "@heroicons/react/24/outline";
 import { api } from "../services/api";
 
@@ -30,22 +34,40 @@ const GLASS_HOVER = {
 const ICON_MAP = {
   MagnifyingGlassIcon,
   UserCircleIcon,
+  UserGroupIcon,
+  GlobeAltIcon,
   TrophyIcon,
+  AcademicCapIcon,
   ShieldCheckIcon,
   ChartBarIcon,
   LifebuoyIcon,
   UserPlusIcon,
   CheckBadgeIcon,
+  RocketLaunchIcon,
 };
 
-// Static fallbacks (one per title � deduped)
+const LEGACY_ICON_ALIASES = {
+  UsersIcon: "UserGroupIcon",
+  SearchIcon: "MagnifyingGlassIcon",
+  BarChartIcon: "ChartBarIcon",
+  BarChart3Icon: "ChartBarIcon",
+  ShieldIcon: "ShieldCheckIcon",
+  GraduationCapIcon: "AcademicCapIcon",
+};
+
+const resolveIcon = (iconName, fallback) => {
+  const normalized = LEGACY_ICON_ALIASES[iconName] || iconName;
+  return ICON_MAP[normalized] || fallback;
+};
+
+// Static fallbacks (one per title, deduped)
 const DEFAULT_SERVICES = [
   { _id: "s1", title: "Player Discovery", description: "Instantly search verified players by position, age, and performance metrics.", icon: "MagnifyingGlassIcon", group: "Discovery" },
   { _id: "s2", title: "Advanced Search", description: "Filter talent by region, club history, and scouting reports.", icon: "MagnifyingGlassIcon", group: "Discovery" },
   { _id: "s3", title: "Profile Management", description: "Build a dynamic profile with career history, highlights, and live stats.", icon: "UserCircleIcon", group: "Profile & Data" },
   { _id: "s4", title: "Achievement Tracking", description: "Showcase awards, milestones, and team accomplishments in one place.", icon: "TrophyIcon", group: "Profile & Data" },
   { _id: "s5", title: "Career Analytics", description: "Track performance trends and career progression with actionable data.", icon: "ChartBarIcon", group: "Analytics & Trust" },
-  { _id: "s6", title: "Verified Profiles", description: "Every profile is verified for accuracy � scouts trust what they see.", icon: "ShieldCheckIcon", group: "Analytics & Trust" },
+  { _id: "s6", title: "Verified Profiles", description: "Every profile is verified for accuracy, scouts trust what they see.", icon: "ShieldCheckIcon", group: "Analytics & Trust" },
 ];
 
 const DEFAULT_STEPS = [
@@ -56,14 +78,58 @@ const DEFAULT_STEPS = [
 
 const SERVICE_GROUPS = ["Discovery", "Profile & Data", "Analytics & Trust"];
 
-// Deduplicate by title, keep first occurrence
-const dedup = (arr) => {
+const dedupeByTitle = (arr = []) => {
   const seen = new Set();
+
   return arr.filter((item) => {
-    if (seen.has(item.title)) return false;
-    seen.add(item.title);
+    const normalizedTitle = (item?.title || "").trim().toLowerCase();
+    const key = normalizedTitle || item?._id;
+    if (!key) return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
+};
+
+const sortServices = (arr = []) =>
+  [...arr].sort((a, b) => {
+    const orderA = Number.isFinite(a?.order) ? a.order : Number.MAX_SAFE_INTEGER;
+    const orderB = Number.isFinite(b?.order) ? b.order : Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a?.title || "").localeCompare(b?.title || "");
+  });
+
+const sortHowItWorks = (arr = []) =>
+  [...arr]
+    .sort((a, b) => {
+      const orderA = Number.isFinite(a?.order) ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = Number.isFinite(b?.order) ? b.order : Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+
+      const stepA = Number.isFinite(a?.stepNumber)
+        ? a.stepNumber
+        : Number.MAX_SAFE_INTEGER;
+      const stepB = Number.isFinite(b?.stepNumber)
+        ? b.stepNumber
+        : Number.MAX_SAFE_INTEGER;
+      if (stepA !== stepB) return stepA - stepB;
+
+      return (a?.title || "").localeCompare(b?.title || "");
+    });
+
+const prepareServices = (arr = []) => dedupeByTitle(sortServices(arr));
+
+const prepareHowItWorks = (arr = []) =>
+  dedupeByTitle(sortHowItWorks(arr)).map((step, index) => ({
+    ...step,
+    displayStepNumber: index + 1,
+  }));
+
+const getHowItWorksGridClass = (count) => {
+  if (count <= 1) return "grid-cols-1";
+  if (count === 2) return "grid-cols-1 md:grid-cols-2";
+  if (count === 3) return "grid-cols-1 md:grid-cols-3";
+  return "grid-cols-1 md:grid-cols-2 xl:grid-cols-4";
 };
 
 // Skeleton
@@ -78,7 +144,7 @@ const SkeletonCard = () => (
 
 // Service Card
 const ServiceCard = ({ service }) => {
-  const Icon = ICON_MAP[service.icon] || MagnifyingGlassIcon;
+  const Icon = resolveIcon(service.icon, MagnifyingGlassIcon);
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -124,12 +190,12 @@ const ServiceCard = ({ service }) => {
 };
 
 // How It Works Step
-const StepCard = ({ step, isLast }) => {
-  const Icon = ICON_MAP[step.icon] || UserPlusIcon;
+const StepCard = ({ step, displayNumber, showConnector }) => {
+  const Icon = resolveIcon(step.icon, UserPlusIcon);
   return (
     <div className="flex flex-col items-center text-center relative">
       {/* Connector line */}
-      {!isLast && (
+      {showConnector && (
         <div
           className="hidden md:block absolute top-7 left-1/2 w-full"
           style={{ height: "1px", background: "linear-gradient(to right, rgba(196,22,28,0.35) 0%, rgba(255,255,255,0.08) 100%)", zIndex: 0 }}
@@ -144,7 +210,7 @@ const StepCard = ({ step, isLast }) => {
           className="font-semibold text-white"
           style={{ fontSize: "18px", fontFamily: "'Poppins', sans-serif" }}
         >
-          {step.stepNumber}
+          {displayNumber}
         </span>
       </div>
       {/* Icon row */}
@@ -179,17 +245,27 @@ const Services = () => {
 
   const fetchData = async () => {
     try {
+      const cacheBuster = { _t: Date.now() };
       const [servicesRes, stepsRes] = await Promise.all([
-        api.getServices(),
-        api.getHowItWorks(),
+        api.getServices(cacheBuster),
+        api.getHowItWorks(cacheBuster),
       ]);
-      const raw = servicesRes.data.services || [];
-      setServices(dedup(raw.length > 0 ? raw : DEFAULT_SERVICES).slice(0, 6));
-      const rawSteps = stepsRes.data.steps || [];
-      setHowItWorks(dedup(rawSteps.length > 0 ? rawSteps : DEFAULT_STEPS).slice(0, 3));
+      const raw = Array.isArray(servicesRes?.data?.services)
+        ? servicesRes.data.services
+        : [];
+      setServices(raw.length > 0 ? prepareServices(raw) : prepareServices(DEFAULT_SERVICES));
+
+      const rawSteps = Array.isArray(stepsRes?.data?.steps)
+        ? stepsRes.data.steps
+        : [];
+      setHowItWorks(
+        rawSteps.length > 0
+          ? prepareHowItWorks(rawSteps)
+          : prepareHowItWorks(DEFAULT_STEPS),
+      );
     } catch {
-      setServices(dedup(DEFAULT_SERVICES));
-      setHowItWorks(DEFAULT_STEPS);
+      setServices(prepareServices(DEFAULT_SERVICES));
+      setHowItWorks(prepareHowItWorks(DEFAULT_STEPS));
     } finally {
       setLoading(false);
     }
@@ -202,6 +278,9 @@ const Services = () => {
     return acc;
   }, {});
   const ungrouped = services.filter((s) => !s.group);
+
+  const howItWorksGridClass = getHowItWorksGridClass(howItWorks.length);
+  const showLinearConnector = howItWorks.length <= 3;
 
   return (
     <div
@@ -351,13 +430,18 @@ const Services = () => {
         </h2>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: "48px" }}>
-            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4" style={{ gap: "48px" }}>
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 relative" style={{ gap: "48px" }}>
+          <div className={`grid relative ${howItWorksGridClass}`} style={{ gap: "48px" }}>
             {howItWorks.map((step, i) => (
-              <StepCard key={step._id} step={step} isLast={i === howItWorks.length - 1} />
+              <StepCard
+                key={step._id || `${step.title}-${i}`}
+                step={step}
+                displayNumber={step.displayStepNumber || i + 1}
+                showConnector={showLinearConnector && i !== howItWorks.length - 1}
+              />
             ))}
           </div>
         )}
@@ -419,7 +503,7 @@ const Services = () => {
                 Stay Ahead of the Game
               </h2>
               <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.38)", lineHeight: "1.6" }}>
-                Transfer news, platform updates, and scouting insights � weekly.
+                Transfer news, platform updates, and scouting insights weekly.
               </p>
             </div>
             <div className="flex-1" style={{ maxWidth: "420px" }}>

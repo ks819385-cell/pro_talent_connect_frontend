@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../../services/api";
+import { useFeedback } from "../../context/FeedbackContext";
 import DOBCalendarPicker from "../common/DOBCalendarPicker";
 import {
   PlusIcon,
@@ -7,8 +8,6 @@ import {
   TrashIcon,
   XMarkIcon,
   MagnifyingGlassIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -26,6 +25,7 @@ const FEET = ["Left", "Right", "Both"];
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 const COMP_RESULTS = ["Champion", "Runner-up", "Third", "Participant", ""];
 const CLUB_TIERS = ["", "Tier 1", "Tier 2", "Tier 3"];
+const MISSING_ID_LABEL = "Player Has No ID";
 
 const gradeColors = {
   A: "bg-emerald-500/20 text-emerald-400", B: "bg-blue-500/20 text-blue-400",
@@ -36,6 +36,13 @@ const gradeColors = {
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white";
 const selectTriggerCls = inputCls;
+
+const formatPlayerId = (playerId) => {
+  if (!playerId) return "N/A";
+  if (playerId.startsWith("PL_TEMP_")) return "Player Has No ID";
+  if (playerId.startsWith("Player Has No ID")) return "Player Has No ID";
+  return playerId;
+};
 
 const Field = ({ label, children, span = 1 }) => (
   <div className={span === 2 ? "col-span-2" : ""}>
@@ -51,12 +58,13 @@ const emptyForm = {
   gender: "Male", jersey_no: "", size: "M", state: "", address: "",
   mobileNumber: "", email: "", profileImage: "", scouting_notes: "",
   career_history: "", youtubeVideoUrl: "", videoThumbnail: "", videoTitle: "", videoDescription: "",
-  plId: "", currentLeague: "", stateLeague: "", clubTier: "",
+  currentLeague: "", stateLeague: "", clubTier: "",
   sprint30m: "", sprint50m: "", mentalityScore: 0, featured: false,
   competitions: [], clubsPlayed: [],
 };
 
 const PlayerManagement = () => {
+  const { showToast, confirm } = useFeedback();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -89,14 +97,32 @@ const PlayerManagement = () => {
       if (debouncedSearch) params.name = debouncedSearch;
       const res = await api.getPlayers(params);
       const data = res.data;
-      setPlayers(data.players || data || []);
-      // Backend returns pagination fields at top level (totalPages, currentPage, etc.)
+      const fetchedPlayers = data.players || data || [];
+      const totalResults = Number(data.totalResults ?? data.pagination?.totalResults ?? 0);
+      const totalPages = Math.max(1, Number(data.totalPages ?? data.pagination?.totalPages ?? 1));
+      const requestedPage = Number(page) || 1;
+      const serverCurrentPage = Number(data.currentPage ?? data.pagination?.currentPage ?? requestedPage);
+      const safeCurrentPage = Math.min(Math.max(1, serverCurrentPage), totalPages);
+
+      // Keep local page in sync with valid page bounds from API before rendering stale data.
+      if (requestedPage !== safeCurrentPage) {
+        setPage(safeCurrentPage);
+        return;
+      }
+
+      // If current page becomes empty after a delete, go back one page.
+      if (fetchedPlayers.length === 0 && requestedPage > 1 && totalResults > 0) {
+        setPage(requestedPage - 1);
+        return;
+      }
+
+      setPlayers(fetchedPlayers);
       setPagination({
-        totalPages: data.totalPages || data.pagination?.totalPages || 1,
-        currentPage: data.currentPage || data.pagination?.currentPage || page,
-        totalResults: data.totalResults || data.pagination?.totalResults || 0,
-        hasNextPage: data.hasNextPage ?? data.pagination?.hasNextPage ?? false,
-        hasPrevPage: data.hasPrevPage ?? data.pagination?.hasPrevPage ?? false,
+        totalPages,
+        currentPage: safeCurrentPage,
+        totalResults,
+        hasNextPage: safeCurrentPage < totalPages,
+        hasPrevPage: safeCurrentPage > 1,
       });
     } catch (err) {
       console.error("Error fetching players:", err);
@@ -133,7 +159,7 @@ const PlayerManagement = () => {
 
   const openCreate = () => {
     setEditingPlayer(null);
-    setFormData({ ...emptyForm });
+    setFormData({ ...emptyForm, playerId: MISSING_ID_LABEL });
     setError("");
     setShowModal(true);
   };
@@ -167,7 +193,6 @@ const PlayerManagement = () => {
       videoThumbnail: player.videoThumbnail || "",
       videoTitle: player.videoTitle || "",
       videoDescription: player.videoDescription || "",
-      plId: player.plId || "",
       currentLeague: player.currentLeague || "",
       stateLeague: player.stateLeague || "",
       clubTier: player.clubTier || "",
@@ -192,7 +217,6 @@ const PlayerManagement = () => {
     // Client-side validation with clear error messages
     const missing = [];
     if (!formData.name?.trim())         missing.push("Full Name");
-    if (!formData.playerId?.trim())     missing.push("Player ID");
     if (!formData.dateOfBirth)          missing.push("Date of Birth");
     if (!formData.email?.trim())        missing.push("Email");
     if (!formData.mobileNumber?.trim()) missing.push("Mobile Number");
@@ -229,13 +253,15 @@ const PlayerManagement = () => {
         clubsPlayed: (formData.clubsPlayed || []).filter((c) => c.clubName?.trim()),
       };
 
+      payload.playerId = formData.playerId?.trim() || MISSING_ID_LABEL;
+
       // Remove undefined/empty optional fields so Joi doesn't choke on them
       Object.keys(payload).forEach((key) => {
         if (payload[key] === undefined || payload[key] === "") delete payload[key];
       });
       // Restore required fields
       payload.name        = formData.name;
-      payload.playerId    = formData.playerId;
+      payload.playerId    = formData.playerId?.trim() || MISSING_ID_LABEL;
       payload.email       = formData.email;
       payload.mobileNumber = formData.mobileNumber;
       payload.gender      = formData.gender;
@@ -264,12 +290,28 @@ const PlayerManagement = () => {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete player "${name}"? This cannot be undone.`)) return;
+    const shouldDelete = await confirm({
+      title: "Delete Player",
+      message: `Delete player "${name}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+
+    if (!shouldDelete) return;
+
     try {
       await api.deletePlayer(id);
-      fetchPlayers();
+      showToast("Player deleted successfully", { type: "success" });
+      if (players.length === 1 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+      } else {
+        fetchPlayers();
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete player");
+      showToast(err.response?.data?.message || "Failed to delete player", {
+        type: "error",
+      });
     }
   };
 
@@ -324,6 +366,37 @@ const PlayerManagement = () => {
       return { ...prev, clubsPlayed: clubs };
     });
   };
+
+  const totalPages = pagination.totalPages || 1;
+  const currentPage = pagination.currentPage || page;
+  const compactPageItems = (() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const items = [];
+    const windowStart = Math.max(1, currentPage - 1);
+    const windowEnd = Math.min(totalPages, currentPage + 1);
+    const tailStart = Math.max(1, totalPages - 1);
+
+    for (let p = windowStart; p <= windowEnd; p += 1) {
+      items.push(p);
+    }
+
+    if (windowEnd < tailStart - 1) {
+      items.push("...");
+    }
+
+    for (let p = Math.max(tailStart, windowEnd + 1); p <= totalPages; p += 1) {
+      items.push(p);
+    }
+
+    if (windowStart > 1) {
+      items.unshift("...");
+    }
+
+    return items;
+  })();
 
   return (
     <div>
@@ -406,7 +479,7 @@ const PlayerManagement = () => {
                   <td className="py-3 px-3 text-gray-300">{player.playingPosition}</td>
                   <td className="py-3 px-3">
                     <span className="text-xs font-mono text-gray-400">
-                      {player.playerId?.startsWith("TEMP") ? "No ID" : player.playerId}
+                      {formatPlayerId(player.playerId)}
                     </span>
                   </td>
                   <td className="py-3 px-3 text-gray-300">{player.state || "N/A"}</td>
@@ -438,14 +511,32 @@ const PlayerManagement = () => {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-          <p className="text-sm text-gray-400">Page {pagination.currentPage} of {pagination.totalPages}</p>
-          <div className="flex gap-2">
-            <button disabled={!pagination.hasPrevPage} onClick={() => setPage(p => p - 1)} className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-all">
-              <ChevronLeftIcon className="w-4 h-4" />
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10 gap-2">
+          <p className="text-xs text-gray-400">{currentPage}/{totalPages}</p>
+          <div className="flex items-center gap-1.5">
+            <button disabled={!pagination.hasPrevPage} onClick={() => setPage((p) => Math.max(1, p - 1))} className="h-8 px-3 text-xs font-medium bg-white/5 border border-white/10 rounded-md hover:bg-white/10 disabled:opacity-30 transition-all">
+              Prev
             </button>
-            <button disabled={!pagination.hasNextPage} onClick={() => setPage(p => p + 1)} className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-all">
-              <ChevronRightIcon className="w-4 h-4" />
+            <div className="flex items-center gap-1">
+              {compactPageItems.map((item, idx) =>
+                item === "..." ? (
+                  <span key={`ellipsis-${idx}`} className="px-1 text-xs text-gray-500">...</span>
+                ) : (
+                  <button
+                    key={`page-${item}`}
+                    onClick={() => setPage(item)}
+                    className={`h-8 min-w-8 px-2 rounded-md text-xs font-medium border transition-all ${item === currentPage
+                        ? "bg-red-500 text-white border-red-500"
+                        : "bg-white/5 text-gray-300 border-white/10 hover:bg-white/10"
+                      }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            </div>
+            <button disabled={!pagination.hasNextPage} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="h-8 px-3 text-xs font-medium bg-white/5 border border-white/10 rounded-md hover:bg-white/10 disabled:opacity-30 transition-all">
+              Next
             </button>
           </div>
         </div>
@@ -463,7 +554,7 @@ const PlayerManagement = () => {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   ["Position", viewPlayer.playingPosition],
-                  ["Player ID", viewPlayer.playerId],
+                  ["Player ID", formatPlayerId(viewPlayer.playerId)],
                   ["Age", viewPlayer.age],
                   ["DOB", viewPlayer.dateOfBirth?.slice(0, 10)],
                   ["Height", viewPlayer.height ? `${viewPlayer.height} cm` : "N/A"],
@@ -515,26 +606,58 @@ const PlayerManagement = () => {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="bg-gray-900 border border-white/10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-900 border-b border-white/10 p-4 flex items-center justify-between z-10">
-              <h3 className="text-lg font-bold">{editingPlayer ? "Edit Player" : "Add New Player"}</h3>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/40">
+            <div className="sticky top-0 bg-gray-950/95 backdrop-blur border-b border-white/10 p-4 flex items-start justify-between gap-4 z-10">
+              <div>
+                <h3 className="text-lg font-bold">{editingPlayer ? "Edit Player" : "Add New Player"}</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  {editingPlayer
+                    ? "Adjust profile details, scout data, or identity fields."
+                    : "Create a new player profile. Player ID should match PL0000000040 or use Player Has No ID if it is not assigned yet."}
+                </p>
+              </div>
+              <span className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${editingPlayer ? "bg-blue-500/15 text-blue-300 border border-blue-500/25" : "bg-yellow-500/15 text-yellow-300 border border-yellow-500/25"}`}>
+                {editingPlayer ? "Editing" : "New entry"}
+              </span>
               <button onClick={() => setShowModal(false)}><XMarkIcon className="w-5 h-5 text-gray-400" /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-4 space-y-6">
               {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>}
 
+              {!editingPlayer && (
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-100 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">No official player ID yet?</p>
+                    <p className="text-xs text-yellow-100/80">Use the placeholder only when the player has no assigned ID.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData((p) => ({ ...p, playerId: MISSING_ID_LABEL }))}
+                    className="self-start sm:self-auto px-3 py-1.5 rounded-lg border border-yellow-400/30 bg-yellow-400/10 text-xs font-semibold text-yellow-50 hover:bg-yellow-400/20 transition-colors"
+                  >
+                    Use Player Has No ID
+                  </button>
+                </div>
+              )}
+
               {/* Basic Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">Basic Information</h4>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-200 uppercase tracking-wider">Basic Information</h4>
+                    <p className="text-xs text-gray-400 mt-1">Identity and contact details that define the player profile.</p>
+                  </div>
+                  <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] uppercase tracking-wider text-gray-400">
+                    Required first
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Full Name *" span={2}>
                     <input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className={inputCls} />
                   </Field>
-                  <Field label="Player ID *">
-                    <input required value={formData.playerId} onChange={e => setFormData(p => ({ ...p, playerId: e.target.value }))} className={inputCls} />
-                  </Field>
-                  <Field label="PL ID">
-                    <input value={formData.plId} onChange={e => setFormData(p => ({ ...p, plId: e.target.value }))} className={inputCls} />
+                  <Field label="Player ID">
+                    <input value={formData.playerId} onChange={e => setFormData(p => ({ ...p, playerId: e.target.value }))} className={inputCls} />
+                    <p className="mt-1 text-[11px] text-gray-500">Format: PL0000000040. This ID is assigned by the AIFF CRS system and is compulsory for organized football.</p>
                   </Field>
                   <Field label="Date of Birth *">
                     <DOBCalendarPicker

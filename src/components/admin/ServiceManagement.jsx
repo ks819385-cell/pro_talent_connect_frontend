@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../../services/api";
+import { useFeedback } from "../../context/FeedbackContext";
 import {
   PlusIcon,
   PencilSquareIcon,
@@ -20,7 +21,27 @@ const HIW_ICONS = ["UserPlusIcon", "CheckBadgeIcon", "MagnifyingGlassIcon", "Roc
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white";
 
+const sortItems = (list = [], section = "services") =>
+  [...list].sort((a, b) => {
+    const orderA = Number.isFinite(a?.order) ? a.order : Number.MAX_SAFE_INTEGER;
+    const orderB = Number.isFinite(b?.order) ? b.order : Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+
+    if (section === "hiw") {
+      const stepA = Number.isFinite(a?.stepNumber)
+        ? a.stepNumber
+        : Number.MAX_SAFE_INTEGER;
+      const stepB = Number.isFinite(b?.stepNumber)
+        ? b.stepNumber
+        : Number.MAX_SAFE_INTEGER;
+      if (stepA !== stepB) return stepA - stepB;
+    }
+
+    return (a?.title || "").localeCompare(b?.title || "");
+  });
+
 const ServiceManagement = () => {
+  const { showToast, confirm } = useFeedback();
   const [services, setServices] = useState([]);
   const [howItWorks, setHowItWorks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +62,21 @@ const ServiceManagement = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [sRes, hRes] = await Promise.all([api.getServices(), api.getHowItWorks()]);
-      setServices(Array.isArray(sRes.data) ? sRes.data : sRes.data?.services || []);
-      setHowItWorks(Array.isArray(hRes.data) ? hRes.data : hRes.data?.steps || []);
+      const cacheBuster = { _t: Date.now() };
+      const [sRes, hRes] = await Promise.all([
+        api.getServices(cacheBuster),
+        api.getHowItWorks(cacheBuster),
+      ]);
+
+      const serviceList = Array.isArray(sRes.data)
+        ? sRes.data
+        : sRes.data?.services || [];
+      const stepList = Array.isArray(hRes.data)
+        ? hRes.data
+        : hRes.data?.steps || [];
+
+      setServices(sortItems(serviceList, "services"));
+      setHowItWorks(sortItems(stepList, "hiw"));
     } catch (err) {
       console.error("Error fetching services:", err);
     } finally {
@@ -100,13 +133,24 @@ const ServiceManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this item?")) return;
+    const itemType = activeSection === "services" ? "service" : "step";
+    const shouldDelete = await confirm({
+      title: "Delete Item",
+      message: `Are you sure you want to delete this ${itemType}? This action cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+
+    if (!shouldDelete) return;
+
     try {
       if (activeSection === "services") await api.deleteService(id);
       else await api.deleteHowItWork(id);
+      showToast(`${itemType[0].toUpperCase()}${itemType.slice(1)} deleted successfully`, { type: "success" });
       fetchAll();
     } catch (err) {
-      alert(err.response?.data?.message || "Delete failed");
+      showToast(err.response?.data?.message || "Delete failed", { type: "error" });
     }
   };
 

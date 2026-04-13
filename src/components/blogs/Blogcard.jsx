@@ -54,7 +54,17 @@ const getBlogImage = (blog) =>
   blog.cover_image ||
   "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80";
 
-const getExcerpt = (blog) => blog.excerpt || blog.content || "";
+const stripMarkdown = (text = "") =>
+  text
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getExcerpt = (blog) => stripMarkdown(blog.excerpt || blog.content || "");
 
 const getAuthor = (blog) => {
   const a = blog.author || blog.author_id;
@@ -126,7 +136,7 @@ const BlogCard = ({ blog }) => {
             <span>{formatDate(blog.createdAt || blog.published_at)}</span>
             {blog.readTime && (
               <>
-                <span>·</span>
+                <span>|</span>
                 <span>{blog.readTime} min read</span>
               </>
             )}
@@ -144,7 +154,7 @@ const BlogCard = ({ blog }) => {
             {blog.title}
           </h3>
 
-          {/* Excerpt — max 2 lines */}
+          {/* Excerpt - max 2 lines */}
           <p
             className="line-clamp-2 flex-1"
             style={{

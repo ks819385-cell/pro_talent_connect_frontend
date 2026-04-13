@@ -54,6 +54,54 @@ const BlogDetailPage = () => {
     });
   };
 
+  const cleanInlineMarkdown = (text = "") =>
+    text
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\[(.*?)\]\((.*?)\)/g, "$1");
+
+  const renderContent = (content = "") => {
+    const lines = content.split(/\r?\n/);
+
+    return lines.map((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return <div key={`spacer-${index}`} className="h-4" />;
+      }
+
+      if (trimmed.startsWith("### ")) {
+        return (
+          <h3 key={`h3-${index}`} className="text-2xl font-semibold text-white mt-8 mb-3">
+            {cleanInlineMarkdown(trimmed.replace(/^###\s+/, ""))}
+          </h3>
+        );
+      }
+
+      if (trimmed.startsWith("## ")) {
+        return (
+          <h2 key={`h2-${index}`} className="text-3xl font-semibold text-white mt-10 mb-4">
+            {cleanInlineMarkdown(trimmed.replace(/^##\s+/, ""))}
+          </h2>
+        );
+      }
+
+      if (trimmed.startsWith("# ")) {
+        return (
+          <h1 key={`h1-${index}`} className="text-4xl font-bold text-white mt-12 mb-5">
+            {cleanInlineMarkdown(trimmed.replace(/^#\s+/, ""))}
+          </h1>
+        );
+      }
+
+      return (
+        <p key={`p-${index}`} className="text-gray-300 text-lg leading-relaxed mb-4">
+          {cleanInlineMarkdown(trimmed)}
+        </p>
+      );
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 pt-32 px-4">
@@ -161,9 +209,7 @@ const BlogDetailPage = () => {
 
           {/* Article Body */}
           <div className="prose prose-invert prose-lg max-w-none">
-            <div className="text-gray-300 text-lg leading-relaxed whitespace-pre-line">
-              {blog.content}
-            </div>
+            <div>{renderContent(blog.content || "")}</div>
           </div>
 
           {/* Tags */}

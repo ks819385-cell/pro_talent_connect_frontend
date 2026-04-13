@@ -41,6 +41,38 @@ class ApiCache {
 
 const apiCache = new ApiCache();
 
+// ─── CSRF Token Management ───────────────────────────────
+// CSRF tokens are needed for all state-changing requests (POST, PUT, DELETE, PATCH)
+const csrfTokenKey = 'csrfToken';
+
+function getCsrfToken() {
+  return localStorage.getItem(csrfTokenKey);
+}
+
+function setCsrfToken(token) {
+  localStorage.setItem(csrfTokenKey, token);
+}
+
+function clearCsrfToken() {
+  localStorage.removeItem(csrfTokenKey);
+}
+
+// Fetch fresh CSRF token from server
+async function fetchCsrfToken() {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/v1/auth/csrf-token`, {
+      withCredentials: true,
+    });
+    if (response.data.csrfToken) {
+      setCsrfToken(response.data.csrfToken);
+      return response.data.csrfToken;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch CSRF token:', error);
+  }
+  return null;
+}
+
 // ─── Request Deduplication ───────────────────────────────
 const pendingRequests = new Map();
 
@@ -57,7 +89,7 @@ function deduplicateRequest(key, requestFn) {
 
 // Create axios instance with default config
 const apiClient = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: `${BASE_URL}/api/v1`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -65,15 +97,17 @@ const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor - add auth token to every request
+// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Add CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
+    const stateChangingMethods = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase());
+    if (stateChangingMethods) {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
-    
     return config;
   },
   (error) => {
@@ -84,13 +118,27 @@ apiClient.interceptors.request.use(
 // Response interceptor - handle errors globally
 apiClient.interceptors.response.use(
   (response) => {
+    // Extract CSRF token from responses (especially login)
+    if (response.data?.csrfToken) {
+      setCsrfToken(response.data.csrfToken);
+    }
     return response;
   },
   (error) => {
+    // Handle 403 CSRF validation errors
+    if (error.response?.status === 403 && error.response?.data?.error === 'CSRF validation failed') {
+      // Token expired - fetch a new one
+      fetchCsrfToken().then(() => {
+        error.message = 'Session expired. Please try your request again.';
+      });
+    }
+    
     // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminSession');
       localStorage.removeItem('adminData');
+      clearCsrfToken();
       
       // Only redirect if not already on login page
       if (!window.location.pathname.includes('/login')) {
@@ -166,6 +214,9 @@ export const api = {
   verifyPlayerOtp: (email, otp) => apiClient.post('/otp/verify-player-otp', { email, otp }),
   sendPasswordOtp: () => apiClient.post('/otp/send-password-otp'),
   verifyPasswordOtp: (otp) => apiClient.post('/otp/verify-password-otp', { otp }),
+  sendForgotPasswordOtp: (email) => apiClient.post('/otp/send-forgot-password-otp', { email }),
+  verifyForgotPasswordOtp: (email, otp) => apiClient.post('/otp/verify-forgot-password-otp', { email, otp }),
+  resetForgotPassword: (data) => apiClient.post('/auth/forgot-password/reset', data),
 
   // ─── Players (cached 30s) ───
   getPlayers: (options = {}) => cachedGet('/players', options, 30000),
@@ -192,15 +243,15 @@ export const api = {
   }),
   addAboutImages: (images) => mutate('post', '/about/images', { images }, ['/about']),
 
-  // ─── Services (cached 5 min) ───
-  getServices: (options = {}) => cachedGet('/services', options, 300000),
+  // ─── Services (always fresh) ───
+  getServices: (options = {}) => apiClient.get('/services', { params: options }),
   getService: (id) => cachedGet(`/services/${id}`, {}, 300000),
   createService: (data) => mutate('post', '/services', data, ['/services']),
   updateService: (id, data) => mutate('put', `/services/${id}`, data, ['/services']),
   deleteService: (id) => { apiCache.invalidate('/services'); return apiClient.delete(`/services/${id}`); },
 
-  // ─── How It Works (cached 5 min) ───
-  getHowItWorks: () => cachedGet('/how-it-works', {}, 300000),
+  // ─── How It Works (always fresh) ───
+  getHowItWorks: (options = {}) => apiClient.get('/how-it-works', { params: options }),
   createHowItWork: (data) => mutate('post', '/how-it-works', data, ['/how-it-works']),
   updateHowItWork: (id, data) => mutate('put', `/how-it-works/${id}`, data, ['/how-it-works']),
   deleteHowItWork: (id) => { apiCache.invalidate('/how-it-works'); return apiClient.delete(`/how-it-works/${id}`); },
@@ -238,4 +289,5 @@ export const api = {
   invalidateCache: (prefix) => apiCache.invalidate(prefix),
 };
 
+export { fetchCsrfToken, getCsrfToken, setCsrfToken, clearCsrfToken };
 export default apiClient;
