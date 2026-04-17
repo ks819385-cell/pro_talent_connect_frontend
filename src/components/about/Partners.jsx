@@ -267,7 +267,7 @@ const normalizePartners = (partners = []) =>
 /* ─── Single partner card — clean logo tile, description on hover ─── */
 const PartnerCard = ({ partner }) => (
   <div
-    className="group relative rounded-2xl p-6 flex flex-col gap-3 transition-all duration-300 cursor-default overflow-hidden"
+    className="group relative rounded-2xl p-4 sm:p-6 flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 cursor-default overflow-hidden"
     style={{
       background: "rgba(255,255,255,0.06)",
       backdropFilter: "blur(14px)",
@@ -285,7 +285,7 @@ const PartnerCard = ({ partner }) => (
     />
 
     {/* Avatar + name row */}
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 min-w-0">
       <div
         className={`w-12 h-12 rounded-xl bg-linear-to-br ${partner.avatarColor} border ${partner.borderColor} flex items-center justify-center shrink-0 overflow-hidden`}
       >
@@ -302,7 +302,7 @@ const PartnerCard = ({ partner }) => (
       <div className="min-w-0">
         {/* H3 — 16px / 600 for partner name (caption context) */}
         <p
-          className="font-semibold text-white truncate"
+          className="font-semibold text-white leading-tight line-clamp-2 break-words"
           style={{ fontSize: "16px" }}
         >
           {partner.name}
@@ -321,7 +321,7 @@ const PartnerCard = ({ partner }) => (
 
     {/* Description — hidden by default, revealed on hover (Hick's Law: less noise) */}
     <p
-      className="font-normal opacity-0 group-hover:opacity-100 transition-opacity duration-300 max-h-0 group-hover:max-h-24 overflow-hidden"
+      className="font-normal opacity-100 max-h-24 overflow-hidden sm:opacity-0 sm:max-h-0 sm:group-hover:opacity-100 sm:group-hover:max-h-24 transition-opacity duration-300"
       style={{
         fontSize: "14px",
         lineHeight: "1.6",
@@ -349,7 +349,7 @@ const PartnerCard = ({ partner }) => (
             rel="noopener noreferrer"
             aria-label={`${partner.name} on ${label}`}
             title={data.handle}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${hoverClass}`}
+            className={`w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${hoverClass}`}
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -367,9 +367,11 @@ const PartnerCard = ({ partner }) => (
 /* ─── Section ─── */
 const Partners = () => {
   const [partners, setPartners] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchPartners = useCallback(async ({ force = false } = {}) => {
     try {
+      setIsLoading(true);
       if (force) {
         api.invalidateCache("/about");
       }
@@ -380,6 +382,8 @@ const Partners = () => {
       setPartners(dbPartners);
     } catch {
       // Keep the last successful state when refresh fails.
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -475,7 +479,27 @@ const Partners = () => {
         </p>
 
         {/* Partner grid — 2 cols mobile, 3 cols laptop */}
-        {partners.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6" aria-label="Loading partners">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-white/10" />
+                  <div className="min-w-0 grow space-y-2">
+                    <div className="h-4 rounded bg-white/10 w-4/5" />
+                    <div className="h-3 rounded bg-white/10 w-2/5" />
+                  </div>
+                </div>
+                <div className="mt-4 h-12 rounded bg-white/10" />
+                <div className="mt-4 flex gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-white/10" />
+                  <div className="w-9 h-9 rounded-lg bg-white/10" />
+                  <div className="w-9 h-9 rounded-lg bg-white/10" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : partners.length === 0 ? (
           <p
             className="text-center py-16"
             style={{ color: "rgba(255,255,255,0.35)", fontSize: "14px" }}
@@ -483,7 +507,7 @@ const Partners = () => {
             No partners listed yet.
           </p>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
             {partners.map((p, index) => (
               <div
                 key={p.id}
