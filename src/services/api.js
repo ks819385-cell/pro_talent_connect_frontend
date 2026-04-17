@@ -239,6 +239,11 @@ export const api = {
 
   // ─── About (cached 5 min) ───
   getAbout: () => cachedGet('/about', {}, 0),
+  getPartners: () => apiClient.get('/about/partners'),
+  replacePartners: (partners) => mutate('put', '/about/partners', { partners }, ['/about']).then((res) => {
+    window.dispatchEvent(new CustomEvent('about:updated'));
+    return res;
+  }),
   updateAbout: (data) => mutate('put', '/about', data, ['/about']).then((res) => {
     window.dispatchEvent(new CustomEvent('about:updated'));
     return res;

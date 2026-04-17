@@ -1,17 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { api } from "../../services/api";
 
-export const STORAGE_KEY = "ptc_partners";
-
-export const loadPartners = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  return null; // signals to use DEFAULT_PARTNERS
-};
+const PARTNERS_AUTO_REFRESH_MS = 15000;
 
 /* ─── Inline SVG social-media icons ─── */
 const InstagramIcon = () => (
@@ -266,6 +257,13 @@ export const SOCIAL_CONFIG = {
   },
 };
 
+const normalizePartners = (partners = []) =>
+  (Array.isArray(partners) ? partners : []).map((partner, index) => ({
+    ...partner,
+    id: partner?.id || partner?._id || `partner-${index}`,
+    social: partner?.social ?? {},
+  }));
+
 /* ─── Single partner card — clean logo tile, description on hover ─── */
 const PartnerCard = ({ partner }) => (
   <div
@@ -338,7 +336,8 @@ const PartnerCard = ({ partner }) => (
       className="flex gap-2 flex-wrap pt-2 border-t"
       style={{ borderColor: "rgba(255,255,255,0.08)" }}
     >
-      {Object.entries(partner.social).map(([platform, data]) => {
+      {Object.entries(partner.social ?? {}).map(([platform, data]) => {
+        if (!data?.url) return null;
         const cfg = SOCIAL_CONFIG[platform];
         if (!cfg) return null;
         const { Icon, label, hoverClass } = cfg;
@@ -367,21 +366,53 @@ const PartnerCard = ({ partner }) => (
 
 /* ─── Section ─── */
 const Partners = () => {
-  const [partners, setPartners] = useState(
-    () => loadPartners() ?? DEFAULT_PARTNERS,
-  );
+  const [partners, setPartners] = useState([]);
+
+  const fetchPartners = useCallback(async ({ force = false } = {}) => {
+    try {
+      if (force) {
+        api.invalidateCache("/about");
+      }
+
+      const response = await api.getPartners();
+      const dbPartners = normalizePartners(response.data?.partners ?? []);
+
+      setPartners(dbPartners);
+    } catch {
+      // Keep the last successful state when refresh fails.
+    }
+  }, []);
 
   useEffect(() => {
-    const refresh = () => setPartners(loadPartners() ?? DEFAULT_PARTNERS);
-    window.addEventListener("storage", (e) => {
-      if (e.key === STORAGE_KEY) refresh();
-    });
-    window.addEventListener("ptc_partners_updated", refresh);
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("ptc_partners_updated", refresh);
+    fetchPartners({ force: true });
+  }, [fetchPartners]);
+
+  useEffect(() => {
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchPartners({ force: true });
     };
-  }, []);
+
+    const refreshOnAboutUpdate = () => {
+      fetchPartners({ force: true });
+    };
+
+    const intervalId = window.setInterval(
+      refreshVisibleData,
+      PARTNERS_AUTO_REFRESH_MS,
+    );
+
+    window.addEventListener("focus", refreshVisibleData);
+    document.addEventListener("visibilitychange", refreshVisibleData);
+    window.addEventListener("about:updated", refreshOnAboutUpdate);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshVisibleData);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+      window.removeEventListener("about:updated", refreshOnAboutUpdate);
+    };
+  }, [fetchPartners]);
 
   const getLastRowAlignment = (index, total) => {
     const remainder = total % 3;

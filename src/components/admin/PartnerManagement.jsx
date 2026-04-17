@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CheckIcon,
   PlusIcon,
@@ -7,12 +7,11 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useFeedback } from "../../context/FeedbackContext";
-import {
-  DEFAULT_PARTNERS,
-  STORAGE_KEY,
-  SOCIAL_CONFIG,
-  loadPartners,
-} from "../about/Partners";
+import { DEFAULT_PARTNERS, SOCIAL_CONFIG } from "../about/Partners";
+import { api } from "../../services/api";
+
+const PARTNERS_SYNC_INTERVAL_MS = 12000;
+const LEGACY_PARTNERS_STORAGE_KEY = "ptc_partners";
 
 /* ─── Colour scheme presets ─── */
 const COLOR_PRESETS = [
@@ -47,13 +46,23 @@ const EMPTY_FORM = {
   },
 };
 
-/* ─── persistence helpers ─── */
-const savePartners = (list) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  window.dispatchEvent(new Event("ptc_partners_updated"));
-};
+const createPartnerId = () =>
+  `partner-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-const getPartners = () => loadPartners() ?? DEFAULT_PARTNERS;
+const normalizePartners = (partners = []) =>
+  (Array.isArray(partners) ? partners : []).map((partner, index) => ({
+    ...partner,
+    id: String(partner?.id || partner?._id || `partner-${index}`),
+    social: partner?.social ?? {},
+  }));
+
+const getDefaultPartners = () =>
+  normalizePartners(
+    DEFAULT_PARTNERS.map((partner) => ({
+      ...partner,
+      id: partner?.id ? String(partner.id) : createPartnerId(),
+    })),
+  );
 
 /* ─── social platform icons (tiny inline) ─── */
 const PlatformIcon = ({ platform }) => {
@@ -94,7 +103,7 @@ const PlatformIcon = ({ platform }) => {
 };
 
 /* ─── Form modal ─── */
-const PartnerModal = ({ initial, onSave, onClose }) => {
+const PartnerModal = ({ initial, onSave, onClose, saving = false }) => {
   const [form, setForm] = useState(() => {
     if (!initial) return { ...EMPTY_FORM, social: { ...EMPTY_FORM.social } };
     return {
@@ -130,14 +139,14 @@ const PartnerModal = ({ initial, onSave, onClose }) => {
 
   const currentPreset = COLOR_PRESETS.find((p) => p.avatarColor === form.avatarColor) ?? COLOR_PRESETS[0];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Strip empty social entries
     const social = {};
     SOCIAL_PLATFORMS.forEach((p) => {
       if (form.social[p]?.url?.trim()) social[p] = form.social[p];
     });
-    onSave({ ...form, social });
+    await onSave({ ...form, social });
   };
 
   const inputCls = "w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-red-500/50 placeholder-gray-600";
@@ -149,7 +158,7 @@ const PartnerModal = ({ initial, onSave, onClose }) => {
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-gray-900/95 border-b border-white/10 backdrop-blur-sm">
           <h2 className="text-lg font-semibold text-white">{initial ? "Edit Partner" : "Add Partner"}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all">
+          <button onClick={onClose} disabled={saving} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
@@ -257,12 +266,12 @@ const PartnerModal = ({ initial, onSave, onClose }) => {
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-gray-300 transition-all">
+            <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
               Cancel
             </button>
-            <button type="submit" className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all shadow-lg shadow-red-500/20">
+            <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
               <CheckIcon className="w-4 h-4" />
-              {initial ? "Save Changes" : "Add Partner"}
+              {saving ? "Saving..." : initial ? "Save Changes" : "Add Partner"}
             </button>
           </div>
         </form>
@@ -272,7 +281,7 @@ const PartnerModal = ({ initial, onSave, onClose }) => {
 };
 
 /* ─── Compact partner row ─── */
-const PartnerRow = ({ partner, onEdit, onDelete }) => {
+const PartnerRow = ({ partner, onEdit, onDelete, disabled = false }) => {
   const socialCount = Object.values(partner.social ?? {}).filter((s) => s?.url).length;
   return (
     <div className="group flex items-center gap-4 p-4 bg-white/3 border border-white/8 rounded-xl hover:bg-white/5 hover:border-white/15 transition-all">
@@ -308,14 +317,16 @@ const PartnerRow = ({ partner, onEdit, onDelete }) => {
       <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(partner)}
-          className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+          disabled={disabled}
+          className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           title="Edit"
         >
           <PencilIcon className="w-4 h-4" />
         </button>
         <button
           onClick={() => onDelete(partner.id)}
-          className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+          disabled={disabled}
+          className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           title="Delete"
         >
           <TrashIcon className="w-4 h-4" />
@@ -328,39 +339,159 @@ const PartnerRow = ({ partner, onEdit, onDelete }) => {
 /* ─── Main management component ─── */
 const PartnerManagement = () => {
   const { showToast } = useFeedback();
-  const [partners, setPartners] = useState(getPartners);
+  const [partners, setPartners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [modal, setModal] = useState(null); // null | { mode: "add" } | { mode: "edit", partner }
   const [deleteConfirm, setDeleteConfirm] = useState(null); // id to delete
 
-  const persist = (updated) => {
-    setPartners(updated);
-    savePartners(updated);
-  };
+  const fetchPartners = useCallback(async ({ silent = false, force = false } = {}) => {
+    try {
+      if (!silent) {
+        setLoading(true);
+        setError("");
+      }
 
-  const handleSave = (formData) => {
+      if (force) {
+        api.invalidateCache("/about");
+      }
+
+      const response = await api.getPartners();
+      const dbPartners = normalizePartners(response.data?.partners ?? []);
+
+      if (dbPartners.length === 0) {
+        const legacyRaw = window.localStorage.getItem(LEGACY_PARTNERS_STORAGE_KEY);
+
+        if (legacyRaw) {
+          try {
+            const legacyPartners = normalizePartners(JSON.parse(legacyRaw));
+
+            if (legacyPartners.length > 0) {
+              const migrationResponse = await api.replacePartners(legacyPartners);
+              const migratedPartners = normalizePartners(
+                migrationResponse.data?.partners ?? legacyPartners,
+              );
+
+              setPartners(migratedPartners);
+              window.localStorage.removeItem(LEGACY_PARTNERS_STORAGE_KEY);
+              showToast("Legacy partners migrated to database");
+              return;
+            }
+          } catch {
+            // Ignore malformed legacy payload and continue with DB state.
+          }
+
+          window.localStorage.removeItem(LEGACY_PARTNERS_STORAGE_KEY);
+        }
+      }
+
+      setPartners(dbPartners);
+    } catch (err) {
+      if (!silent) {
+        setError(err.response?.data?.message || "Failed to load partners");
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchPartners({ force: true });
+  }, [fetchPartners]);
+
+  useEffect(() => {
+    const refreshVisibleData = () => {
+      if (document.visibilityState !== "visible") return;
+      fetchPartners({ silent: true, force: true });
+    };
+
+    const refreshOnAboutUpdate = () => {
+      fetchPartners({ silent: true, force: true });
+    };
+
+    const intervalId = window.setInterval(
+      refreshVisibleData,
+      PARTNERS_SYNC_INTERVAL_MS,
+    );
+
+    window.addEventListener("focus", refreshVisibleData);
+    document.addEventListener("visibilitychange", refreshVisibleData);
+    window.addEventListener("about:updated", refreshOnAboutUpdate);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshVisibleData);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+      window.removeEventListener("about:updated", refreshOnAboutUpdate);
+    };
+  }, [fetchPartners]);
+
+  const persist = useCallback(
+    async (updated, successMessage, tone = "success") => {
+      try {
+        setSaving(true);
+        setError("");
+
+        const normalized = normalizePartners(updated);
+        setPartners(normalized);
+
+        const response = await api.replacePartners(normalized);
+        const savedPartners = normalizePartners(
+          response.data?.partners ?? normalized,
+        );
+
+        setPartners(savedPartners);
+        showToast(successMessage, tone);
+        return true;
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to save partners");
+        showToast("Failed to save partners", "error");
+        await fetchPartners({ silent: true, force: true });
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [fetchPartners, showToast],
+  );
+
+  const handleSave = async (formData) => {
     if (modal?.mode === "edit") {
       const updated = partners.map((p) =>
         p.id === modal.partner.id ? { ...formData, id: p.id } : p
       );
-      persist(updated);
-      showToast("Partner updated successfully");
+      const didSave = await persist(updated, "Partner updated successfully");
+      if (didSave) {
+        setModal(null);
+      }
     } else {
-      const newPartner = { ...formData, id: Date.now() };
-      persist([...partners, newPartner]);
-      showToast("Partner added successfully");
+      const newPartner = { ...formData, id: createPartnerId() };
+      const didSave = await persist(
+        [...partners, newPartner],
+        "Partner added successfully",
+      );
+      if (didSave) {
+        setModal(null);
+      }
     }
-    setModal(null);
   };
 
-  const handleDelete = (id) => {
-    persist(partners.filter((p) => p.id !== id));
-    setDeleteConfirm(null);
-    showToast("Partner removed", "error");
+  const handleDelete = async (id) => {
+    const didSave = await persist(
+      partners.filter((p) => p.id !== id),
+      "Partner removed",
+      "error",
+    );
+    if (didSave) {
+      setDeleteConfirm(null);
+    }
   };
 
-  const handleReset = () => {
-    persist(DEFAULT_PARTNERS);
-    showToast("Partners reset to defaults");
+  const handleReset = async () => {
+    await persist(getDefaultPartners(), "Partners reset to defaults");
   };
 
   return (
@@ -374,14 +505,16 @@ const PartnerManagement = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleReset}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            disabled={loading || saving}
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             title="Reset to default sample partners"
           >
             Reset to Defaults
           </button>
           <button
+            disabled={loading || saving}
             onClick={() => setModal({ mode: "add" })}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all shadow-lg shadow-red-500/20"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PlusIcon className="w-4 h-4" />
             Add Partner
@@ -389,13 +522,25 @@ const PartnerManagement = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Partners list */}
-      {partners.length === 0 ? (
+      {loading ? (
+        <div className="py-14 text-center border border-dashed border-white/10 rounded-2xl">
+          <div className="inline-block h-6 w-6 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+          <p className="text-gray-500 mt-3 text-sm">Loading partners...</p>
+        </div>
+      ) : partners.length === 0 ? (
         <div className="py-16 text-center border border-dashed border-white/10 rounded-2xl">
           <p className="text-gray-500 mb-4">No partners yet.</p>
           <button
+            disabled={saving}
             onClick={() => setModal({ mode: "add" })}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PlusIcon className="w-4 h-4" /> Add first partner
           </button>
@@ -406,6 +551,7 @@ const PartnerManagement = () => {
             <PartnerRow
               key={partner.id}
               partner={partner}
+              disabled={saving}
               onEdit={(p) => setModal({ mode: "edit", partner: p })}
               onDelete={(id) => setDeleteConfirm(id)}
             />
@@ -423,16 +569,18 @@ const PartnerManagement = () => {
             </p>
             <div className="flex gap-3">
               <button
+                disabled={saving}
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 transition-all"
+                className="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
+                disabled={saving}
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all"
+                className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Remove
+                {saving ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>
@@ -443,8 +591,13 @@ const PartnerManagement = () => {
       {modal && (
         <PartnerModal
           initial={modal.mode === "edit" ? modal.partner : null}
+          saving={saving}
           onSave={handleSave}
-          onClose={() => setModal(null)}
+          onClose={() => {
+            if (!saving) {
+              setModal(null);
+            }
+          }}
         />
       )}
     </div>
