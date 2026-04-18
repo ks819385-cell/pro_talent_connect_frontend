@@ -123,13 +123,12 @@ const FeaturedPlayers = () => {
       try {
         setLoading(true);
         const base = import.meta.env.VITE_API_URL || "http://localhost:5001";
-        const res = await axios.get(`${base}/api/v1/players?limit=100`);
+        const res = await axios.get(
+          `${base}/api/v1/players?sortBy=score&sortOrder=desc&limit=6&page=1`
+        );
         const all = res.data.players || res.data || [];
         const unique = Array.from(new Map(all.map((p) => [p._id, p])).values());
-        const sorted = unique
-          .sort((a, b) => (b.scoutReport?.totalScore || 0) - (a.scoutReport?.totalScore || 0))
-          .slice(0, 6);
-        setPlayers(sorted);
+        setPlayers(unique.slice(0, 6));
       } catch {
         setPlayers([]);
       } finally {
@@ -260,6 +259,14 @@ const FeaturedPlayers = () => {
               key={player._id}
               role="listitem"
               aria-label={`${player.name}, ${player.playingPosition}`}
+              tabIndex={0}
+              onClick={() => openPlayerProfile(player)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openPlayerProfile(player);
+                }
+              }}
               className="shrink-0 rounded-2xl overflow-hidden cursor-pointer"
               style={{
                 /* 72vw card + 8% right peek = natural affordance to swipe */
@@ -319,23 +326,6 @@ const FeaturedPlayers = () => {
                 {player.scoutReport?.totalScore > 0 && (
                   <ScoreBar score={player.scoutReport.totalScore} grade={player.scoutReport.grade} />
                 )}
-
-                {/* CTA - Fitts's Law: full-width, 48px tall = easy thumb tap */}
-                <button
-                  type="button"
-                  onClick={() => openPlayerProfile(player)}
-                  className="mt-3.5 flex items-center justify-center text-white text-[14px] font-bold no-underline rounded-xl transition-opacity duration-200 active:opacity-80"
-                  style={{
-                    height: "48px",
-                    background: "linear-gradient(135deg,#C4161C 0%,#E8242B 100%)",
-                    boxShadow: "0 3px 14px rgba(196,22,28,0.4)",
-                    letterSpacing: "0.01em",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  View Profile
-                </button>
               </div>
             </article>
           );

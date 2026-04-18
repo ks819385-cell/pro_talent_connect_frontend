@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "../assets/Logo@pro_talent_connect.png";
 
@@ -288,7 +288,7 @@ const IconMore = ({ active }) => (
 );
 
 /* Standard person / profile icon — replaces Login in mobile tab bar */
-const IconProfile = () => (
+const IconProfile = ({ active }) => (
   <svg
     width="22"
     height="22"
@@ -298,11 +298,18 @@ const IconProfile = () => (
     strokeWidth="1.8"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <circle cx="12" cy="8" r="4" fill="none" strokeWidth="1.8" />
+    <circle
+      cx="12"
+      cy="8"
+      r="4"
+      fill={active ? "currentColor" : "none"}
+      strokeWidth={active ? 0 : 1.8}
+    />
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
       d="M4 20c0-4 3.582-7 8-7s8 3 8 7"
+      strokeWidth={active ? 2 : 1.8}
     />
   </svg>
 );
@@ -313,6 +320,8 @@ const NavBar = () => {
   const isLoggedIn = !!localStorage.getItem("adminSession");
   const [pressedTab, setPressedTab] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreSheetRef = useRef(null);
+  const moreTriggerRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -333,11 +342,11 @@ const NavBar = () => {
       : [{ name: "Login", path: "/login" }]),
   ], [isLoggedIn]);
 
-  /* mobile bottom tab links — 4 primary + 1 More (Hick's Law) */
+  /* mobile bottom tab links — Home in center for faster thumb access */
   const bottomTabs = useMemo(() => [
-    { name: "Home", path: "/", Icon: IconHome },
     { name: "Players", path: "/players", Icon: IconPlayers },
     { name: "Blog", path: "/blog", Icon: IconBlog },
+    { name: "Home", path: "/", Icon: IconHome },
     ...(isLoggedIn
       ? [{ name: "Dashboard", path: "/admin", Icon: IconDashboard }]
       : [{ name: "Profile", path: "/login", Icon: IconProfile }]),
@@ -385,9 +394,68 @@ const NavBar = () => {
   ], []);
 
   const getIsActive = useCallback((path) => {
+    if (!path) return false;
     if (path === "/") return location.pathname === "/";
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+
+    const sheet = moreSheetRef.current;
+    const trigger = moreTriggerRef.current;
+    const focusableSelector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(', ');
+
+    const getFocusableElements = () =>
+      Array.from(sheet?.querySelectorAll(focusableSelector) || []).filter(
+        (element) => !element.hasAttribute("disabled"),
+      );
+
+    const focusableElements = getFocusableElements();
+    focusableElements[0]?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMoreOpen(false);
+        trigger?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) return;
+
+      const firstElement = elements[0];
+      const lastElement = elements[elements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !sheet?.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+      } else if (activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      trigger?.focus();
+    };
+  }, [moreOpen]);
 
   return (
     <>
@@ -471,39 +539,51 @@ const NavBar = () => {
         </div>
       </nav>
 
-      {/* ── Bottom tab bar — 5 items, MD3 pill active state ────────── */}
+      {/* ── Bottom tab bar — reduced visual noise, center Home ────────── */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f12] border-t border-white/[0.07]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50"
         style={{
-          paddingBottom: "max(6px, env(safe-area-inset-bottom))",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          paddingBottom: "max(8px, env(safe-area-inset-bottom))",
+          paddingLeft: "12px",
+          paddingRight: "12px",
         }}
         aria-label="Mobile navigation"
       >
-        <ul className="flex h-16">
+        <ul
+          className="flex h-[60px] rounded-2xl border border-white/[0.07] bg-[#0f0f12]/92"
+          style={{
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            boxShadow: "0 12px 32px rgba(0,0,0,0.42)",
+          }}
+        >
           {bottomTabs.map(({ name, path, Icon }) => {
             const isMore = name === "More";
             const isActive = isMore ? moreOpen : getIsActive(path);
             const isPressed = pressedTab === name;
+            const isCenterHome = name === "Home";
 
             const inner = (
               <>
                 {/* Icon — pill highlight when active */}
                 <span
                   className="relative flex items-center justify-center"
-                  style={{ width: 48, height: 32 }}
+                  style={{ width: 48, height: 30 }}
                 >
                   {isActive && (
                     <span
-                      className="absolute inset-0 rounded-full bg-red-500/12"
-                      style={{ transition: "opacity 200ms ease" }}
+                      className="absolute inset-0 rounded-full bg-red-500/14"
+                      style={{
+                        transition: "opacity 200ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+                        transform: isCenterHome ? "scale(1.08)" : "scale(1)",
+                      }}
                     />
                   )}
                   <span
-                    className="relative transition-colors duration-200"
+                    className="relative transition-all duration-200"
                     style={{
                       color: isActive ? "#e63a3a" : "rgba(255,255,255,0.55)",
+                      transform: isActive ? "translateY(-0.5px)" : "translateY(0)",
                     }}
                   >
                     {Icon({ active: isActive })}
@@ -511,9 +591,10 @@ const NavBar = () => {
                 </span>
                 {/* Label */}
                 <span
-                  className="text-[12px] font-medium leading-none transition-colors duration-200"
+                  className="text-[11px] font-medium leading-none transition-all duration-200"
                   style={{
-                    color: isActive ? "#e63a3a" : "rgba(255,255,255,0.50)",
+                    color: isActive ? "#e63a3a" : "rgba(255,255,255,0.43)",
+                    opacity: isActive ? 1 : 0.72,
                   }}
                 >
                   {name}
@@ -522,13 +603,18 @@ const NavBar = () => {
             );
 
             const sharedStyle = {
-              transform: isPressed ? "scale(0.94)" : "scale(1)",
-              transition: "transform 180ms ease-in-out",
+              transform: isPressed
+                ? "scale(0.94)"
+                : isActive
+                  ? "translateY(-1px)"
+                  : "translateY(0)",
+              transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease",
             };
             const sharedEvents = {
               onPointerDown: () => setPressedTab(name),
               onPointerUp: () => setPressedTab(null),
               onPointerLeave: () => setPressedTab(null),
+              onPointerCancel: () => setPressedTab(null),
             };
 
             if (isMore) {
@@ -536,6 +622,7 @@ const NavBar = () => {
                 <li key={name} className="flex-1 flex">
                   <button
                     type="button"
+                    ref={moreTriggerRef}
                     {...sharedEvents}
                     onClick={() => setMoreOpen((v) => !v)}
                     className="flex flex-1 flex-col items-center justify-center gap-1 select-none outline-none"
@@ -584,6 +671,7 @@ const NavBar = () => {
             role="dialog"
             aria-modal="true"
             aria-label="More options"
+            ref={moreSheetRef}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-0.5">
@@ -604,25 +692,33 @@ const NavBar = () => {
                     <Link
                       to={path}
                       onClick={() => setMoreOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-3.5 rounded-2xl transition-colors duration-150"
+                      className="flex items-center gap-3 w-full px-3 py-3.5 rounded-2xl transition-all duration-200"
                       style={{
                         background: active
                           ? "rgba(230,58,58,0.10)"
                           : "transparent",
                       }}
+                      onMouseEnter={(e) => {
+                        if (!active) e.currentTarget.style.transform = "translateX(2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateX(0)";
+                      }}
                       onPointerDown={(e) =>
-                        !active &&
-                        (e.currentTarget.style.background =
-                          "rgba(255,255,255,0.04)")
+                        !active && ((e.currentTarget.style.background = "rgba(255,255,255,0.04)"), (e.currentTarget.style.transform = "scale(0.99)"))
                       }
-                      onPointerUp={(e) =>
-                        !active &&
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                      onPointerLeave={(e) =>
-                        !active &&
-                        (e.currentTarget.style.background = "transparent")
-                      }
+                      onPointerUp={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.transform = "translateX(2px)";
+                        }
+                      }}
+                      onPointerLeave={(e) => {
+                        if (!active) {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.transform = "translateX(0)";
+                        }
+                      }}
                     >
                       {/* Icon badge */}
                       <span

@@ -81,6 +81,24 @@ const PLAYERS_PER_PAGE = 18;
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=400";
 
+const buildPlayersQuery = (filters, sortBy, page) => {
+  const sortOrder = sortBy === "score" ? "desc" : "asc";
+
+  return {
+    page,
+    limit: PLAYERS_PER_PAGE,
+    searchQuery: filters.searchQuery.trim(),
+    position: filters.position,
+    ageMin: filters.ageMin,
+    ageMax: filters.ageMax,
+    heightMin: filters.heightMin,
+    heightMax: filters.heightMax,
+    state: filters.state,
+    sortBy,
+    sortOrder,
+  };
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getGradeStyle = (grade) => {
   const map = {
@@ -1229,7 +1247,8 @@ const Players = () => {
   const location = useLocation();
   const featuredRouteHandledRef = useRef(false);
   const [players, setPlayers] = useState([]);
-  const [filteredPlayers, setFilteredPlayers] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState("grid");
@@ -1252,22 +1271,35 @@ const Players = () => {
     searchQuery: "",
   });
 
-  const fetchPlayers = useCallback(async (signal) => {
+  const fetchPlayers = useCallback(async ({ page, queryFilters, querySortBy, signal }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.getPlayers({ limit: 100, signal });
-      const playersList = response.data.players || response.data || [];
+      const response = await api.getPlayers({
+        ...buildPlayersQuery(queryFilters, querySortBy, page),
+        signal,
+      });
+
+      const responseData = response.data || {};
+      const playersList = responseData.players || [];
+      const nextTotalPages = Number(responseData.totalPages) || 1;
+      const nextTotalResults = Number(responseData.totalResults) || playersList.length;
+
       if (!signal.aborted) {
         setPlayers(playersList);
-        setFilteredPlayers(playersList);
+        setTotalPages(nextTotalPages);
+        setTotalResults(nextTotalResults);
+        if (page > nextTotalPages && nextTotalPages > 0) {
+          setCurrentPage(nextTotalPages);
+        }
       }
     } catch (err) {
       if (!signal.aborted) {
         console.error("Error fetching players:", err);
         setError("Failed to load players. Please try again.");
         setPlayers([]);
-        setFilteredPlayers([]);
+        setTotalPages(1);
+        setTotalResults(0);
       }
     } finally {
       if (!signal.aborted) setLoading(false);
@@ -1276,64 +1308,23 @@ const Players = () => {
 
   useEffect(() => {
     const ac = new AbortController();
-    fetchPlayers(ac.signal);
-    return () => ac.abort();
-  }, [fetchPlayers]);
+    const timer = window.setTimeout(() => {
+      fetchPlayers({
+        page: currentPage,
+        queryFilters: filters,
+        querySortBy: sortBy,
+        signal: ac.signal,
+      });
+    }, 220);
 
-  const applyFilters = useCallback(() => {
-    let result = [...players];
-    const q = filters.searchQuery.toLowerCase();
-    if (q) {
-      result = result.filter(
-        (p) =>
-          p.name?.toLowerCase().includes(q) ||
-          p.playingPosition?.toLowerCase().includes(q) ||
-          p.state?.toLowerCase().includes(q) ||
-          p.nationality?.toLowerCase().includes(q),
-      );
-    }
-    if (filters.position) {
-      // Normalise both sides to a common root so "MIDFIELD" matches
-      // the "Midfielder" filter option, "FORWARD" matches "Forward", etc.
-      const normalisePos = (str = "") =>
-        str.toLowerCase().replace(/keeper$/, "").replace(/er$/, "").replace(/or$/, "").trim();
-      const filterRoot = normalisePos(filters.position);
-      result = result.filter((p) =>
-        normalisePos(p.playingPosition).includes(filterRoot),
-      );
-    }
-    if (filters.ageMin)
-      result = result.filter((p) => p.age >= parseInt(filters.ageMin));
-    if (filters.ageMax)
-      result = result.filter((p) => p.age <= parseInt(filters.ageMax));
-    if (filters.heightMin)
-      result = result.filter((p) => p.height >= parseInt(filters.heightMin));
-    if (filters.heightMax)
-      result = result.filter((p) => p.height <= parseInt(filters.heightMax));
-    if (filters.state)
-      result = result.filter((p) =>
-        p.state?.toLowerCase().includes(filters.state.toLowerCase()),
-      );
-    result.sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "score")
-        return (
-          (b.scoutReport?.totalScore || 0) - (a.scoutReport?.totalScore || 0)
-        );
-      if (sortBy === "age") return (a.age || 0) - (b.age || 0);
-      if (sortBy === "position")
-        return (a.playingPosition || "").localeCompare(b.playingPosition || "");
-      return 0;
-    });
+    return () => {
+      window.clearTimeout(timer);
+      ac.abort();
+    };
+  }, [currentPage, fetchPlayers, filters, sortBy]);
+
+  const clearFilters = () => {
     setCurrentPage(1);
-    setFilteredPlayers(result);
-  }, [filters, players, sortBy]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  const clearFilters = () =>
     setFilters({
       position: "",
       ageMin: "",
@@ -1343,8 +1334,12 @@ const Players = () => {
       state: "",
       searchQuery: "",
     });
+  };
 
-  const set = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }));
+  const set = (key, val) => {
+    setCurrentPage(1);
+    setFilters((prev) => ({ ...prev, [key]: val }));
+  };
 
   const handleViewProfile = useCallback((player) => {
     setSelectedPlayer(player);
@@ -1356,20 +1351,34 @@ const Players = () => {
     const routeState = location.state;
     if (!routeState || featuredRouteHandledRef.current) return;
 
-    const requestedId = routeState.openPlayerId;
     const requestedPlayer = routeState.openPlayer;
+    const requestedId = routeState.openPlayerId;
 
-    if (!requestedId && !requestedPlayer) return;
+    if (requestedPlayer) {
+      featuredRouteHandledRef.current = true;
+      handleViewProfile(requestedPlayer);
+      return;
+    }
 
-    const resolvedPlayer = requestedId
-      ? players.find((p) => p._id === requestedId) || requestedPlayer
-      : requestedPlayer;
+    if (!requestedId) return;
 
-    if (!resolvedPlayer) return;
+    let cancelled = false;
+    api.getPlayer(requestedId)
+      .then((response) => {
+        if (cancelled) return;
+        featuredRouteHandledRef.current = true;
+        handleViewProfile(response.data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Failed to open featured player:", err);
+        }
+      });
 
-    featuredRouteHandledRef.current = true;
-    handleViewProfile(resolvedPlayer);
-  }, [location.state, players, handleViewProfile]);
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, handleViewProfile]);
 
   const activeChips = [
     filters.position && {
@@ -1396,12 +1405,6 @@ const Players = () => {
       set("heightMax", "");
     } else set(key, "");
   };
-
-  const totalPages = Math.ceil(filteredPlayers.length / PLAYERS_PER_PAGE);
-  const pagedPlayers = filteredPlayers.slice(
-    (currentPage - 1) * PLAYERS_PER_PAGE,
-    currentPage * PLAYERS_PER_PAGE,
-  );
 
   const inputStyle = {
     width: "100%",
@@ -1478,11 +1481,11 @@ const Players = () => {
               >
                 {loading
                   ? "Loading\u2026"
-                  : `${filteredPlayers.length} verified player${filteredPlayers.length !== 1 ? "s" : ""}`}
+                  : `${totalResults} verified player${totalResults !== 1 ? "s" : ""}`}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => { setCurrentPage(1); setSortBy(value); }}>
                 <SelectTrigger
                   size="sm"
                   className="h-9 min-w-[120px] text-xs"
@@ -1615,7 +1618,12 @@ const Players = () => {
               <button
                 onClick={() => {
                   const ac = new AbortController();
-                  fetchPlayers(ac.signal);
+                  fetchPlayers({
+                    page: currentPage,
+                    queryFilters: filters,
+                    querySortBy: sortBy,
+                    signal: ac.signal,
+                  });
                 }}
                 className="mt-4"
                 style={{
@@ -1630,11 +1638,11 @@ const Players = () => {
                 Try again
               </button>
             </div>
-          ) : filteredPlayers.length === 0 ? (
+          ) : players.length === 0 ? (
             <NoResults onReset={clearFilters} />
           ) : (
             <>
-              {pagedPlayers.map((player) => (
+              {players.map((player) => (
                 <MobilePlayerCard
                   key={player._id}
                   player={player}
@@ -1729,7 +1737,7 @@ const Players = () => {
                 >
                   {loading
                     ? "Loading players..."
-                    : `${filteredPlayers.length} verified player${filteredPlayers.length !== 1 ? "s" : ""}`}
+                    : `${totalResults} verified player${totalResults !== 1 ? "s" : ""}`}
                 </p>
               </div>
 
@@ -1765,7 +1773,7 @@ const Players = () => {
                 </div>
 
                 {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={(value) => { setCurrentPage(1); setSortBy(value); }}>
                   <SelectTrigger
                     size="lg"
                     className="text-sm"
@@ -2117,7 +2125,12 @@ const Players = () => {
                     <button
                       onClick={() => {
                         const ac = new AbortController();
-                        fetchPlayers(ac.signal);
+                        fetchPlayers({
+                          page: currentPage,
+                          queryFilters: filters,
+                          querySortBy: sortBy,
+                          signal: ac.signal,
+                        });
                       }}
                       className="mt-4"
                       style={{
@@ -2132,13 +2145,13 @@ const Players = () => {
                       Try again
                     </button>
                   </div>
-                ) : filteredPlayers.length === 0 ? (
+                ) : players.length === 0 ? (
                   <NoResults onReset={clearFilters} />
                 ) : (
                   <>
                     {viewMode === "grid" ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {pagedPlayers.map((player) => (
+                        {players.map((player) => (
                           <PlayerCardGrid
                             key={player._id}
                             player={player}
@@ -2148,7 +2161,7 @@ const Players = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {pagedPlayers.map((player) => (
+                        {players.map((player) => (
                           <PlayerCardList
                             key={player._id}
                             player={player}

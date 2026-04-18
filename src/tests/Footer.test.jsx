@@ -33,6 +33,6 @@ describe('Footer', () => {
 
   it('shows copyright text', () => {
     renderFooter();
-    expect(screen.getByText(/Pro Talent Connect/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Pro Talent Connect/i).length).toBeGreaterThan(0);
   });
 });

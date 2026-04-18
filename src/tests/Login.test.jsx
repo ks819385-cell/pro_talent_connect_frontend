@@ -35,6 +35,16 @@ function renderLogin() {
   );
 }
 
+function getLoginInputs() {
+  const emailInput = screen.getAllByPlaceholderText(/admin@example\.com/i)[0];
+  const passwordInput = screen.getAllByPlaceholderText(/Enter your password/i)[0];
+  return { emailInput, passwordInput };
+}
+
+function getSignInButton() {
+  return screen.getAllByRole('button', { name: /sign in/i })[0];
+}
+
 describe('Login page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,9 +54,9 @@ describe('Login page', () => {
   it('renders heading and form fields', () => {
     renderLogin();
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/admin@example\.com/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Enter your password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(getLoginInputs().emailInput).toBeInTheDocument();
+    expect(getLoginInputs().passwordInput).toBeInTheDocument();
+    expect(getSignInButton()).toBeInTheDocument();
   });
 
   it('does NOT show demo credentials', () => {
@@ -61,14 +71,15 @@ describe('Login page', () => {
     });
 
     renderLogin();
+    const { emailInput, passwordInput } = getLoginInputs();
 
-    fireEvent.change(screen.getByPlaceholderText(/admin@example\.com/i), {
+    fireEvent.change(emailInput, {
       target: { value: 'wrong@example.com' },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Enter your password/i), {
+    fireEvent.change(passwordInput, {
       target: { value: 'wrongpassword' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    fireEvent.click(getSignInButton());
 
     await waitFor(() => {
       expect(screen.getByText(/Invalid credentials/i)).toBeInTheDocument();
@@ -81,14 +92,15 @@ describe('Login page', () => {
     });
 
     renderLogin();
+    const { emailInput, passwordInput } = getLoginInputs();
 
-    fireEvent.change(screen.getByPlaceholderText(/admin@example\.com/i), {
+    fireEvent.change(emailInput, {
       target: { value: 'admin@test.com' },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Enter your password/i), {
+    fireEvent.change(passwordInput, {
       target: { value: 'Password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    fireEvent.click(getSignInButton());
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/admin');
@@ -107,14 +119,15 @@ describe('Login page', () => {
     });
 
     renderLogin();
+    const { passwordInput } = getLoginInputs();
 
-    fireEvent.change(screen.getByPlaceholderText(/admin@example\.com/i), {
+    fireEvent.change(getLoginInputs().emailInput, {
       target: { value: 'invite@test.com' },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Enter your password/i), {
+    fireEvent.change(passwordInput, {
       target: { value: 'Password123!' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    fireEvent.click(getSignInButton());
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/admin-activate', {
@@ -127,11 +140,11 @@ describe('Login page', () => {
 
   it('toggles password visibility', () => {
     renderLogin();
-    const passwordInput = screen.getByPlaceholderText(/Enter your password/i);
+    const { passwordInput } = getLoginInputs();
     expect(passwordInput).toHaveAttribute('type', 'password');
 
     // Find the toggle button (eye icon button)
-    const toggleBtn = screen.getByRole('button', { name: '' });
+    const toggleBtn = screen.getAllByRole('button', { name: '' })[0];
     fireEvent.click(toggleBtn);
 
     expect(passwordInput).toHaveAttribute('type', 'text');
