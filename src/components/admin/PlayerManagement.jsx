@@ -94,7 +94,7 @@ const PlayerManagement = () => {
       setLoading(true);
       const params = { page, limit: 18 };
       if (posFilter) params.playingPosition = posFilter;
-      if (debouncedSearch) params.name = debouncedSearch;
+      if (debouncedSearch) params.searchQuery = debouncedSearch;
       const res = await api.getPlayers(params);
       const data = res.data;
       const fetchedPlayers = data.players || data || [];
@@ -588,6 +588,14 @@ const PlayerManagement = () => {
                   ))}
                 </div>
               )}
+              {viewPlayer.career_history && (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-gray-400 mb-2 font-medium">Career History</p>
+                  <div className="bg-white/[0.02] rounded border border-white/5 p-3 text-sm leading-relaxed max-h-32 overflow-y-auto">
+                    <p className="text-gray-200 whitespace-pre-wrap break-words">{viewPlayer.career_history}</p>
+                  </div>
+                </div>
+              )}
               {(viewPlayer.youtubeVideoUrl || viewPlayer.videoTitle || viewPlayer.videoDescription || viewPlayer.videoThumbnail) && (
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-gray-400 mb-2 font-medium">Profile Video</p>
@@ -935,7 +943,20 @@ const PlayerManagement = () => {
                     <PlusIcon className="w-3 h-3" /> Add
                   </button>
                 </div>
-                <div ref={competitionsContainerRef} className="space-y-2 max-h-60 overflow-y-auto">
+                <div 
+                  ref={competitionsContainerRef} 
+                  className="space-y-2 overflow-y-auto rounded-lg border border-white/5"
+                  style={{
+                    maxHeight: 'clamp(200px, 50vh, 320px)',
+                    scrollBehavior: 'smooth'
+                  }}
+                >
+                  <style>{`
+                    div::-webkit-scrollbar { width: 6px; }
+                    div::-webkit-scrollbar-track { background: transparent; }
+                    div::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+                    div::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+                  `}</style>
                   {formData.competitions.map((comp, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
                       <div className="col-span-4">
@@ -957,7 +978,7 @@ const PlayerManagement = () => {
                           <SelectTrigger className={selectTriggerCls}>
                             <SelectValue placeholder="Select..." />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-48 overflow-y-auto">
                             <SelectItem value="none">Select...</SelectItem>
                             {leagueOptions.map((league) => (
                               <SelectItem key={league._id} value={league.name}>
@@ -1017,7 +1038,14 @@ const PlayerManagement = () => {
                     <PlusIcon className="w-3 h-3" /> Add
                   </button>
                 </div>
-                <div ref={clubsContainerRef} className="space-y-2 max-h-48 overflow-y-auto">
+                <div 
+                  ref={clubsContainerRef} 
+                  className="space-y-2 overflow-y-auto rounded-lg border border-white/5"
+                  style={{
+                    maxHeight: 'clamp(180px, 40vh, 280px)',
+                    scrollBehavior: 'smooth'
+                  }}
+                >
                   {formData.clubsPlayed.map((club, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
                       <div className="col-span-5">
@@ -1051,9 +1079,23 @@ const PlayerManagement = () => {
                   <Field label="Scouting Notes">
                     <textarea rows={2} value={formData.scouting_notes} onChange={e => setFormData(p => ({ ...p, scouting_notes: e.target.value }))} className={inputCls} />
                   </Field>
-                  <Field label="Career History">
-                    <textarea rows={2} value={formData.career_history} onChange={e => setFormData(p => ({ ...p, career_history: e.target.value }))} className={inputCls} />
-                  </Field>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Career History</label>
+                      <span className="text-[11px] text-gray-500">{formData.career_history.length}/1000 chars</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mb-3">
+                      Chronicle the player's club history, achievements, and career milestones.
+                    </p>
+                    <textarea 
+                      value={formData.career_history} 
+                      onChange={e => setFormData(p => ({ ...p, career_history: e.target.value.slice(0, 1000) }))} 
+                      maxLength={1000}
+                      rows={4}
+                      placeholder="E.g., Started at youth academy in 2018, played for local clubs, joined ISL in 2021, national team debut in 2023..."
+                      className={`w-full bg-white/[0.02] border border-white/5 rounded-lg p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:bg-white/[0.04] transition-all resize-none ${inputCls}`}
+                    />
+                  </div>
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
                       Player Highlight Video
