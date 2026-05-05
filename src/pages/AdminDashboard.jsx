@@ -1438,7 +1438,9 @@ const DASHBOARD_AUTO_REFRESH_MS = 20000;
 /* === MAIN COMPONENT === */
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("adminActiveTab") || "overview";
+  });
   const [stats, setStats] = useState(null);
   const [adminData, setAdminData] = useState(null);
   const [enquiries, setEnquiries] = useState([]);
@@ -1453,6 +1455,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchCsrfToken();
   }, []);
+
+  /* Persist active tab to localStorage */
+  useEffect(() => {
+    localStorage.setItem("adminActiveTab", activeTab);
+  }, [activeTab]);
 
   /* Auth guard */
   useEffect(() => {

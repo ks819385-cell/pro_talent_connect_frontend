@@ -80,6 +80,10 @@ const PlayerManagement = () => {
   const [pagination, setPagination] = useState({});
   const [posFilter, setPosFilter] = useState("");
   const [leagues, setLeagues] = useState([]);
+  const [showAllCompetitions, setShowAllCompetitions] = useState(false);
+  const [showAllClubs, setShowAllClubs] = useState(false);
+  const [expandCareerHistory, setExpandCareerHistory] = useState(false);
+  const [showVideoDetails, setShowVideoDetails] = useState(false);
 
   // Refs for auto-scroll when adding competition/club rows
   const competitionsEndRef = useRef(null);
@@ -161,6 +165,10 @@ const PlayerManagement = () => {
     setEditingPlayer(null);
     setFormData({ ...emptyForm, playerId: MISSING_ID_LABEL });
     setError("");
+    setShowAllCompetitions(false);
+    setShowAllClubs(false);
+    setExpandCareerHistory(false);
+    setShowVideoDetails(false);
     setShowModal(true);
   };
 
@@ -204,6 +212,10 @@ const PlayerManagement = () => {
       clubsPlayed: player.clubsPlayed || [],
     });
     setError("");
+    setShowAllCompetitions(false);
+    setShowAllClubs(false);
+    setExpandCareerHistory(false);
+    setShowVideoDetails(false);
     setShowModal(true);
   };
 
@@ -398,6 +410,13 @@ const PlayerManagement = () => {
     return items;
   })();
 
+  const previewCompetitions = showAllCompetitions
+    ? formData.competitions
+    : formData.competitions.slice(0, 3);
+  const previewClubs = showAllClubs
+    ? formData.clubsPlayed
+    : formData.clubsPlayed.slice(0, 2);
+
   return (
     <div>
       {/* Header */}
@@ -441,71 +460,63 @@ const PlayerManagement = () => {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Player Cards */}
       {loading ? (
         <div className="text-center py-12"><div className="animate-spin h-8 w-8 border-2 border-red-500 border-t-transparent rounded-full mx-auto" /></div>
       ) : players.length === 0 ? (
         <div className="text-center py-12 text-gray-400">No players found</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">Player</th>
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">Position</th>
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">ID</th>
-                <th className="text-left py-3 px-3 text-gray-400 font-medium">Location</th>
-                <th className="text-center py-3 px-3 text-gray-400 font-medium">Grade</th>
-                <th className="text-center py-3 px-3 text-gray-400 font-medium">Score</th>
-                <th className="text-right py-3 px-3 text-gray-400 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map(player => (
-                <tr key={player._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={player.profileImage || "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100"}
-                        className="w-9 h-9 rounded-lg object-cover border border-white/10"
-                        alt=""
-                      />
-                      <div>
-                        <p className="font-medium text-white">{player.name}</p>
-                        <p className="text-xs text-gray-500">{player.email}</p>
+        <div className="grid gap-3">
+          {players.map((player) => {
+            const grade = player.scoutReport?.grade || "N/A";
+            const score = player.scoutReport?.totalScore || 0;
+
+            return (
+              <div key={player._id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-sm transition-colors hover:bg-white/[0.05]">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <img
+                      src={player.profileImage || "https://images.unsplash.com/photo-1511367461989-f85a21fda167?w=100"}
+                      className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0"
+                      alt=""
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-white truncate">{player.name}</p>
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${gradeColors[grade] || gradeColors["N/A"]}`}>
+                          {grade}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 break-all">{player.email}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-400">
+                        <span className="px-2 py-1 rounded-full bg-white/[0.04] border border-white/5">{player.playingPosition || "N/A"}</span>
+                        <span className="px-2 py-1 rounded-full bg-white/[0.04] border border-white/5">{formatPlayerId(player.playerId)}</span>
+                        <span className="px-2 py-1 rounded-full bg-white/[0.04] border border-white/5">{player.state || "N/A"}</span>
                       </div>
                     </div>
-                  </td>
-                  <td className="py-3 px-3 text-gray-300">{player.playingPosition}</td>
-                  <td className="py-3 px-3">
-                    <span className="text-xs font-mono text-gray-400">
-                      {formatPlayerId(player.playerId)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-gray-300">{player.state || "N/A"}</td>
-                  <td className="py-3 px-3 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${gradeColors[player.scoutReport?.grade] || gradeColors["N/A"]}`}>
-                      {player.scoutReport?.grade || "N/A"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-center text-gray-300">{player.scoutReport?.totalScore || 0}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => { setViewPlayer(player); setShowViewModal(true); }} className="p-1.5 hover:bg-white/10 rounded-lg transition-all" title="View">
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:text-right">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-gray-500">Score</p>
+                      <p className="text-2xl font-bold text-white leading-none">{score}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => { setViewPlayer(player); setShowViewModal(true); }} className="p-2 hover:bg-white/10 rounded-lg transition-all" title="View">
                         <EyeIcon className="w-4 h-4 text-gray-400" />
                       </button>
-                      <button onClick={() => openEdit(player)} className="p-1.5 hover:bg-white/10 rounded-lg transition-all" title="Edit">
+                      <button onClick={() => openEdit(player)} className="p-2 hover:bg-white/10 rounded-lg transition-all" title="Edit">
                         <PencilSquareIcon className="w-4 h-4 text-gray-400" />
                       </button>
-                      <button onClick={() => handleDelete(player._id, player.name)} className="p-1.5 hover:bg-red-500/20 rounded-lg transition-all" title="Delete">
+                      <button onClick={() => handleDelete(player._id, player.name)} className="p-2 hover:bg-red-500/20 rounded-lg transition-all" title="Delete">
                         <TrashIcon className="w-4 h-4 text-red-400" />
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -551,7 +562,7 @@ const PlayerManagement = () => {
               <button onClick={() => setShowViewModal(false)}><XMarkIcon className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   ["Position", viewPlayer.playingPosition],
                   ["Player ID", formatPlayerId(viewPlayer.playerId)],
@@ -613,8 +624,8 @@ const PlayerManagement = () => {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="bg-gray-900 border border-white/10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/40">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl shadow-black/40">
             <div className="sticky top-0 bg-gray-950/95 backdrop-blur border-b border-white/10 p-4 flex items-start justify-between gap-4 z-10">
               <div>
                 <h3 className="text-lg font-bold">{editingPlayer ? "Edit Player" : "Add New Player"}</h3>
@@ -629,7 +640,7 @@ const PlayerManagement = () => {
               </span>
               <button onClick={() => setShowModal(false)}><XMarkIcon className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-6">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
               {error && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{error}</div>}
 
               {!editingPlayer && (
@@ -659,7 +670,7 @@ const PlayerManagement = () => {
                     Required first
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Field label="Full Name *" span={2}>
                     <input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className={inputCls} />
                   </Field>
@@ -815,7 +826,7 @@ const PlayerManagement = () => {
               {/* Contact */}
               <div>
                 <h4 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">Contact</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Field label="Email *">
                     <input type="email" required value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className={inputCls} />
                   </Field>
@@ -938,32 +949,35 @@ const PlayerManagement = () => {
               {/* Competitions */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Competitions ({formData.competitions.length})</h4>
-                  <button type="button" onClick={addCompetition} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-                    <PlusIcon className="w-3 h-3" /> Add
-                  </button>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                    Competitions ({showAllCompetitions ? formData.competitions.length : Math.min(3, formData.competitions.length)} / {formData.competitions.length})
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={addCompetition} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                      <PlusIcon className="w-3 h-3" /> Add
+                    </button>
+                    {formData.competitions.length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllCompetitions((prev) => !prev)}
+                        className="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1"
+                      >
+                        {showAllCompetitions ? "Show Less" : "View All ↓"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div 
                   ref={competitionsContainerRef} 
-                  className="space-y-2 overflow-y-auto rounded-lg border border-white/5"
-                  style={{
-                    maxHeight: 'clamp(200px, 50vh, 320px)',
-                    scrollBehavior: 'smooth'
-                  }}
+                  className={`space-y-2 rounded-lg border border-white/5 p-2 ${showAllCompetitions ? "max-h-64 overflow-y-auto" : ""}`}
                 >
-                  <style>{`
-                    div::-webkit-scrollbar { width: 6px; }
-                    div::-webkit-scrollbar-track { background: transparent; }
-                    div::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
-                    div::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
-                  `}</style>
-                  {formData.competitions.map((comp, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
-                      <div className="col-span-4">
+                  {previewCompetitions.map((comp, idx) => (
+                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
+                      <div className="col-span-1 md:col-span-4">
                         <label className="text-[10px] text-gray-500">Name</label>
                         <input value={comp.name} onChange={e => updateCompetition(idx, "name", e.target.value)} className={inputCls} placeholder="Competition name" />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-1 md:col-span-3">
                         <label className="text-[10px] text-gray-500">League / Type</label>
                         <Select
                           value={comp.type || "none"}
@@ -992,11 +1006,11 @@ const PlayerManagement = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1 md:col-span-2">
                         <label className="text-[10px] text-gray-500">Year</label>
                         <input type="number" value={comp.year} onChange={e => updateCompetition(idx, "year", e.target.value)} className={inputCls} />
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1 md:col-span-2">
                         <label className="text-[10px] text-gray-500">Result</label>
                         <Select
                           value={comp.result || "none"}
@@ -1026,6 +1040,12 @@ const PlayerManagement = () => {
                       </div>
                     </div>
                   ))}
+                  {!showAllCompetitions && formData.competitions.length > 3 && (
+                    <div className="px-2 py-1 text-[11px] text-gray-500 flex items-center justify-between">
+                      <span>Showing 3 of {formData.competitions.length}</span>
+                      <span>Tap View All to expand</span>
+                    </div>
+                  )}
                   <div ref={competitionsEndRef} />
                 </div>
               </div>
@@ -1033,30 +1053,39 @@ const PlayerManagement = () => {
               {/* Clubs Played */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Clubs Played ({formData.clubsPlayed.length})</h4>
-                  <button type="button" onClick={addClub} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
-                    <PlusIcon className="w-3 h-3" /> Add
-                  </button>
+                  <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+                    Clubs Played ({showAllClubs ? formData.clubsPlayed.length : Math.min(2, formData.clubsPlayed.length)} / {formData.clubsPlayed.length})
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={addClub} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                      <PlusIcon className="w-3 h-3" /> Add
+                    </button>
+                    {formData.clubsPlayed.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllClubs((prev) => !prev)}
+                        className="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1"
+                      >
+                        {showAllClubs ? "Show Less" : "View All ↓"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div 
                   ref={clubsContainerRef} 
-                  className="space-y-2 overflow-y-auto rounded-lg border border-white/5"
-                  style={{
-                    maxHeight: 'clamp(180px, 40vh, 280px)',
-                    scrollBehavior: 'smooth'
-                  }}
+                  className={`space-y-2 rounded-lg border border-white/5 p-2 ${showAllClubs ? "max-h-52 overflow-y-auto" : ""}`}
                 >
-                  {formData.clubsPlayed.map((club, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
-                      <div className="col-span-5">
+                  {previewClubs.map((club, idx) => (
+                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end bg-white/5 rounded-lg p-2">
+                      <div className="col-span-1 md:col-span-5">
                         <label className="text-[10px] text-gray-500">Club Name</label>
                         <input value={club.clubName} onChange={e => updateClub(idx, "clubName", e.target.value)} className={inputCls} />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-1 md:col-span-3">
                         <label className="text-[10px] text-gray-500">Duration</label>
                         <input value={club.duration} onChange={e => updateClub(idx, "duration", e.target.value)} className={inputCls} placeholder="2020-2022" />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-1 md:col-span-3">
                         <label className="text-[10px] text-gray-500">Logo URL</label>
                         <input value={club.clubLogo} onChange={e => updateClub(idx, "clubLogo", e.target.value)} className={inputCls} />
                       </div>
@@ -1065,6 +1094,12 @@ const PlayerManagement = () => {
                       </div>
                     </div>
                   ))}
+                  {!showAllClubs && formData.clubsPlayed.length > 2 && (
+                    <div className="px-2 py-1 text-[11px] text-gray-500 flex items-center justify-between">
+                      <span>Showing 2 of {formData.clubsPlayed.length}</span>
+                      <span>Tap View All to expand</span>
+                    </div>
+                  )}
                   <div ref={clubsEndRef} />
                 </div>
               </div>
@@ -1077,47 +1112,51 @@ const PlayerManagement = () => {
                     <input value={formData.profileImage} onChange={e => setFormData(p => ({ ...p, profileImage: e.target.value }))} className={inputCls} />
                   </Field>
                   <Field label="Scouting Notes">
-                    <textarea rows={2} value={formData.scouting_notes} onChange={e => setFormData(p => ({ ...p, scouting_notes: e.target.value }))} className={inputCls} />
+                    <textarea
+                      rows={3}
+                      value={formData.scouting_notes}
+                      onChange={e => setFormData(p => ({ ...p, scouting_notes: e.target.value }))}
+                      className={`${inputCls} min-h-[88px] resize-y`}
+                      placeholder="Short scouting summary, strengths, concerns, or observations"
+                    />
                   </Field>
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Career History</label>
-                      <span className="text-[11px] text-gray-500">{formData.career_history.length}/1000 chars</span>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div>
+                        <label className="text-xs font-semibold uppercase tracking-wider text-gray-400">Career History</label>
+                        <p className="text-[11px] text-gray-500 mt-1">{expandCareerHistory ? "Max 4-5 lines visible" : "Show only 4-5 lines"}</p>
+                      </div>
+                      <button type="button" onClick={() => setExpandCareerHistory((prev) => !prev)} className="text-xs text-gray-400 hover:text-gray-200">
+                        {expandCareerHistory ? "Collapse ↑" : "Expand ↓"}
+                      </button>
                     </div>
-                    <p className="text-[11px] text-gray-500 mb-3">
-                      Chronicle the player's club history, achievements, and career milestones.
-                    </p>
                     <textarea 
                       value={formData.career_history} 
                       onChange={e => setFormData(p => ({ ...p, career_history: e.target.value.slice(0, 1000) }))} 
                       maxLength={1000}
-                      rows={4}
+                      rows={expandCareerHistory ? 8 : 4}
+                      aria-label="Career History"
                       placeholder="E.g., Started at youth academy in 2018, played for local clubs, joined ISL in 2021, national team debut in 2023..."
                       className={`w-full bg-white/[0.02] border border-white/5 rounded-lg p-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:bg-white/[0.04] transition-all resize-none ${inputCls}`}
                     />
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
-                      Player Highlight Video
-                    </p>
-                    <p className="text-[11px] text-gray-500 mb-3">
-                      Mobile-first setup: keep title short, use a clear thumbnail, and add a YouTube link.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Field label="YouTube Video URL (Watch/Share/Embed)">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Video</p>
+                        <p className="text-[11px] text-gray-500 mt-1">Keep the main link visible; reveal extra video details only if needed.</p>
+                      </div>
+                      <button type="button" onClick={() => setShowVideoDetails((prev) => !prev)} className="text-xs text-gray-400 hover:text-gray-200">
+                        {showVideoDetails ? "Hide Details" : "More Details"}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      <Field label="YouTube Video URL">
                         <input
                           value={formData.youtubeVideoUrl}
                           onChange={e => setFormData(p => ({ ...p, youtubeVideoUrl: e.target.value }))}
                           className={inputCls}
                           placeholder="https://youtube.com/watch?v=..."
-                        />
-                      </Field>
-                      <Field label="Thumbnail URL">
-                        <input
-                          value={formData.videoThumbnail}
-                          onChange={e => setFormData(p => ({ ...p, videoThumbnail: e.target.value }))}
-                          className={inputCls}
-                          placeholder="https://images.unsplash.com/..."
                         />
                       </Field>
                       <Field label="Video Title">
@@ -1129,15 +1168,27 @@ const PlayerManagement = () => {
                           placeholder="Player Highlight Reel"
                         />
                       </Field>
-                      <Field label="Video Description">
-                        <input
-                          value={formData.videoDescription}
-                          onChange={e => setFormData(p => ({ ...p, videoDescription: e.target.value }))}
-                          className={inputCls}
-                          maxLength={300}
-                          placeholder="Short summary for profile view"
-                        />
-                      </Field>
+                      {showVideoDetails && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Field label="Thumbnail URL">
+                            <input
+                              value={formData.videoThumbnail}
+                              onChange={e => setFormData(p => ({ ...p, videoThumbnail: e.target.value }))}
+                              className={inputCls}
+                              placeholder="https://images.unsplash.com/..."
+                            />
+                          </Field>
+                          <Field label="Video Description">
+                            <input
+                              value={formData.videoDescription}
+                              onChange={e => setFormData(p => ({ ...p, videoDescription: e.target.value }))}
+                              className={inputCls}
+                              maxLength={300}
+                              placeholder="Short summary for profile view"
+                            />
+                          </Field>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <label className="flex items-center gap-2 text-sm">
