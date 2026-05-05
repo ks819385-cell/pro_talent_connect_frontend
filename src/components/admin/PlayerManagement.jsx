@@ -861,7 +861,7 @@ const PlayerManagement = () => {
                       <SelectTrigger className={selectTriggerCls}>
                         <SelectValue placeholder="None" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-48 overflow-y-auto">
                         <SelectItem value="none">None</SelectItem>
                         {leagueOptions.map((league) => (
                           <SelectItem key={league._id} value={league.name}>
@@ -884,7 +884,7 @@ const PlayerManagement = () => {
                       <SelectTrigger className={selectTriggerCls}>
                         <SelectValue placeholder="None" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-48 overflow-y-auto">
                         <SelectItem value="none">None</SelectItem>
                         {stateLeagueOptions.map((league) => (
                           <SelectItem key={league._id} value={league.name}>
@@ -907,7 +907,7 @@ const PlayerManagement = () => {
                       <SelectTrigger className={selectTriggerCls}>
                         <SelectValue placeholder="Auto-detect" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-48 overflow-y-auto">
                         <SelectItem value="none">Auto-detect</SelectItem>
                         {CLUB_TIERS.filter(Boolean).map((tier) => (
                           <SelectItem key={tier} value={tier}>
@@ -936,7 +936,7 @@ const PlayerManagement = () => {
                       <SelectTrigger className={selectTriggerCls}>
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-48 overflow-y-auto">
                         <SelectItem value="0">0 - No data</SelectItem>
                         <SelectItem value="1">1 - Good</SelectItem>
                         <SelectItem value="2">2 - Strong</SelectItem>
